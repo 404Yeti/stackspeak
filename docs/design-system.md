@@ -61,12 +61,29 @@ Figma components become React components under `frontend/src/components/ui/`, ma
 - `Card` — `elevation: flat | elevated`.
 - `ComingSoon` — not a Figma component; a Sprint 01 composition of `Badge` + `Card` for routes with no implemented functionality yet.
 
-Components not yet built (Mic Button, Waveform, Test Result Row, Code Editor, Terminal Panel, Stage Stepper, Chip, Progress Bar, Step Item) belong to the challenge workspace, which is out of Sprint 01 scope — build them when the Daily Challenge workspace itself is implemented, against the real Figma specs at that time.
+### AUD-50 additions (workspace/app-shell components)
+
+All built against the real Figma specs for their respective nodes, pulled fresh during AUD-50 planning:
+
+- `Chip` — `selected: boolean`.
+- `ProgressBar` — **deviates from the Figma enum on purpose** (approved by the project owner): takes a continuous `value: number` (0–100, clamped) instead of Figma's `25 | 50 | 75 | 100` steps. Same visual output at each of those four checkpoints; `role="progressbar"` with `aria-valuenow/min/max`.
+- `StepItem` / `StageStepper` — `StageStepper` fixes the six stages (Read→Feedback) and derives each `StepItem`'s `done | active | upcoming` state from a single `stage` prop. `StepItem` renders a plain `<span>`, not an `<li>`, so it stays valid when `StageStepper` (which does own the `<li>`s) wraps it — using it bare elsewhere won't produce invalid list nesting.
+- `MicButton` — **always rendered `disabled`**, regardless of `state`. There is no audio capture anywhere in the app, so nothing here is a working control; the accessible label says "preview only" / "not yet available" for every state.
+- `Waveform` — static bar heights matching the approved spec exactly; never animates, since there's no real audio to visualize.
+- `CodeEditor` — **read-only only.** Figma's spec includes an "Editable" visual mode, but it isn't implemented: an "Editing" badge over text nobody can actually edit would itself be a fake control. Revisit this once a real edit/save/run path exists.
+- `TerminalPanel` / `TestResultRow` — presentational only; whoever composes them is responsible for clearly labeling the data as sample output, since the components themselves don't know whether their data is real.
+- `Logo` — the real downloaded icon asset (`frontend/public/brand/logo-icon.svg`) plus the wordmark as live text matching the approved colors exactly (Stack in primary text, Speak in emerald/`text-success`) rather than an image, so it stays crisp and accessible. Used only in `SiteHeader`, per the approved scope — not introduced anywhere else.
+- `PipMascot` — wraps the 10 downloaded expression PNGs (`frontend/public/mascot/`). Static images only; no animation, no implied awareness of what the student is doing.
+
+### Why PNG for Pip but SVG for the logo
+
+Figma's SVG export for Pip returns 15–20 tiny fragment files per expression (eyes, headphones, antenna, etc. as separate vector layers), not one clean file — not something worth hand-reassembling. The single rasterized PNG export per expression is the pragmatic, faithful choice. The logo icon, by contrast, exported as one clean 942-byte SVG, so that's what's used — vector where it's clean, raster where it isn't.
 
 ## Responsive behavior
 
 - Nav collapses to a hamburger-triggered menu below Tailwind's `md` breakpoint (`frontend/src/components/layout/SiteHeader.tsx`); verified at common mobile (375px) and desktop (1280px+) widths.
 - Page content uses `max-w-*` containers with horizontal padding rather than fixed widths, so it reflows rather than overflowing at intermediate widths.
+- As of AUD-50: verified with real browser screenshots (Playwright) at 320, 390, 768, and 1440px on both `/` and `/daily-challenge` — zero horizontal overflow at any width, `CodeEditor`'s code block scrolls internally rather than pushing the page wider.
 - No Figma tablet/mobile screens exist to diff against yet (see above) — current responsive behavior is a reasonable default, not a pixel match to an inspected mobile mockup.
 
 ## Mascot: Pip

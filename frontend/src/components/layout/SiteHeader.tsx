@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { primaryNavLinks } from "@/lib/navigation";
 import { Badge } from "@/components/ui/Badge";
+import { Logo } from "@/components/ui/Logo";
 
 export function SiteHeader() {
   const pathname = usePathname();
@@ -13,8 +14,8 @@ export function SiteHeader() {
   return (
     <header className="sticky top-0 z-10 border-b border-border-subtle bg-background/95 backdrop-blur">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-        <Link href="/" className="text-lg font-semibold text-text-primary">
-          Stack<span className="text-accent-soft">Speak</span>
+        <Link href="/">
+          <Logo />
         </Link>
 
         <nav className="hidden items-center gap-1 md:flex" aria-label="Primary">
