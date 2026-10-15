@@ -1,6 +1,6 @@
 # Deployment — StackSpeak v0.1 Public Preview
 
-**Status as of 2026-10-15: LIVE.** Both services deployed, integrated, and verified end-to-end in a real browser — nav, responsiveness, backend connectivity, and CORS all confirmed working. One open item: the homepage's visible "Sprint 01 — Application Foundation" badge doesn't match the required "StackSpeak v0.1 Public Preview" label (see "Outstanding").
+**Status as of 2026-10-15: RELEASED.** Both services deployed, integrated, and verified end-to-end in a real browser — nav, responsiveness, backend connectivity, and CORS all confirmed working. The homepage hero badge now reads "StackSpeak v0.1 Public Preview," verified live. **StackSpeak v0.1 Public Preview is considered released.**
 
 ## Live URLs
 
@@ -58,8 +58,17 @@ All checks run independently against the live URLs — no Render/Vercel dashboar
 
 **Why no client-side `/api/health` request appears in the network log above:** `BackendStatus` (`frontend/src/features/home/BackendStatus.tsx`) is a React Server Component — its fetch runs on Vercel's server at request time (server-to-server, Vercel → Render), not in the visitor's browser. That's expected and correct, and it's *why* a separate, explicit browser-side CORS probe (the `page.evaluate` fetch above) was run — the homepage itself doesn't exercise the browser→backend CORS path at all, so "Online" alone wouldn't have proven CORS was configured correctly.
 
+## Labeling fix (2026-10-15, post-release)
+
+The homepage hero badge was changed from "Sprint 01 — Application Foundation" to **"StackSpeak v0.1 Public Preview"** (`frontend/src/app/page.tsx`, single-line change — footer text intentionally left as-is, out of scope). Verified:
+
+- `npm run lint` / `typecheck` / `test` (4/4) / `build` — all clean
+- Pushed as `8db5c67`; Vercel auto-deployed within ~20 seconds of the push
+- Confirmed live via `curl` (new text present) and a Playwright screenshot of the production homepage
+- Backend untouched and unaffected — still `5e4480b`, no redeploy needed for a frontend-only text change
+
 ## Outstanding
 
-- **Labeling gap:** the brief (two turns prior) required the deployed app be clearly labeled "StackSpeak v0.1 Public Preview." The homepage currently shows "Sprint 01 — Application Foundation" instead (`frontend/src/app/page.tsx`, hero badge) — accurate for the sprint, but not the public-facing label that was specified. Not changed as part of this verification pass, since this request was scoped to verification only ("report failures," not "fix them") — flagging for an explicit go-ahead before touching it.
+No release blockers remain. For future sprints, not this one:
 - No persistence, auth, or code-execution sandbox — unchanged from Sprint 01, intentional.
 - `npm audit` dev-only `braces` advisory — unchanged, documented in `docs/development.md`.
