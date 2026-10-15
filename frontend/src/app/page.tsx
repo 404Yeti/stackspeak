@@ -8,7 +8,7 @@ export default function Home() {
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-20 px-6 py-16">
       <section className="flex flex-col items-start gap-6">
-        <Badge tone="accent">Sprint 01 — Application Foundation</Badge>
+        <Badge tone="accent">StackSpeak v0.1 Public Preview</Badge>
         <h1 className="text-4xl font-semibold tracking-tight text-text-primary sm:text-5xl">
           Read it. Explain it. Fix it. Defend it.
         </h1>
