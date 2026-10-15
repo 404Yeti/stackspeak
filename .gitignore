@@ -1,0 +1,28 @@
+# Node / Next.js
+node_modules/
+.next/
+out/
+frontend/next-env.d.ts
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+.mypy_cache/
+.pytest_cache/
+backend/*.egg-info/
+
+# Env files
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# Editor / OS
+.DS_Store
+.vscode/
+.idea/
+
+# Coverage / logs
+coverage/
+*.log
