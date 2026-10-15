@@ -111,10 +111,35 @@ The homepage hero badge was changed from "Sprint 01 — Application Foundation" 
 | Hidden test case (`input=[42]`) excluded | ✅ 4 of 5 test cases returned, exactly as designed |
 | Frontend backend-connectivity still "Online" | ✅ unaffected, as expected for a backend-only change |
 
+## AUD-54 release (2026-10-15)
+
+**PR [#3](https://github.com/404Yeti/stackspeak/pull/3) merged** → `main` @ merge commit `a65f7f4283f9d63fad32c3e5f31de719123ddac8`. Frontend-only change (public homepage rebuilt to match the approved Figma frame `9:487` — see `docs/design-system.md` → "AUD-54 additions"); backend untouched.
+
+**CI:** both `frontend` and `backend` jobs green on the PR head commit (`95cfc5b`) before merge, and again on the `main` push after merge (run [38715026905](https://github.com/404Yeti/stackspeak/actions/runs/38715026905)).
+
+**Deployment evidence:** GitHub's commit-status API shows `Vercel: success` directly attached to merge commit `a65f7f4...`. `https://stackspeak.vercel.app/` serves the new copy (hero "Level up your coding and your English.", footer "StackSpeak — Read it. Explain it. Fix it. Defend it.") — confirms the merged revision is live, not a stale cached build.
+
+**Post-merge production verification** (Playwright, 320/390/768/1024/1440px, against the live site):
+
+| Check | Result |
+|---|---|
+| No horizontal overflow at any width | ✅ `scrollWidth === clientWidth`, all 5 widths |
+| No console errors / failed requests | ✅ zero at any width |
+| Hamburger nav (below 1024px) opens correctly | ✅ 320/390/768px |
+| Inline nav (1024px+) renders correctly, including right at the 1024px boundary | ✅ — this is the exact breakpoint the pre-merge QA bug (nav overlapping the logo at 768px) was fixed to | 
+| Hero CTA present | ✅ all 5 widths |
+| `Log in`/`Sign up` genuinely disabled | ✅ `.isDisabled()` true, all 5 widths |
+| Footer links (Courses/Practice Lab/Interview Practice/Privacy/Terms) present, correctly targeted | ✅ all 5 widths |
+| Skip-to-content link still first tab stop | ✅ verified on a clean page load at 320px and 768px |
+| All 8 routes (`/`, `/daily-challenge`, `/courses`, `/practice-lab`, `/interview-practice`, `/privacy`, `/terms`, `/progress`) return 200, zero console errors | ✅ |
+| `/daily-challenge` unaffected | ✅ noninteractive preview, sample code, heading all present |
+| Backend unaffected | ✅ `/api/health` still reports commit `4b5e7f0` (AUD-51), as expected for a frontend-only change; `/api/challenges` still serves correctly |
+| Screenshots match Figma `9:487` | ✅ section ordering, copy, branding confirmed at all 5 widths |
+
 ## Outstanding
 
 No release blockers remain. For future sprints, not this one:
-- No persistence, auth, or code-execution sandbox — unchanged from Sprint 01, intentional. Challenge attempts/progression and stage persistence are explicitly deferred (see `docs/challenge-schema.md`).
+- No persistence, auth, or code-execution sandbox — unchanged from Sprint 01, intentional. Challenge attempts/progression and stage persistence are explicitly deferred (see `docs/challenge-schema.md`). Homepage `Log in`/`Sign up` are intentionally disabled until auth is scoped.
 - `npm audit` dev-only `braces` advisory — unchanged, documented in `docs/development.md`.
-- Feature branches `aud-50-design-system-app-shell` and `aud-51-challenge-schema` still exist on GitHub (not auto-deleted — repo's `deleteBranchOnMerge` is off); safe to delete, not done automatically.
-- AUD-54 (homepage Figma alignment) remains blocked pending the approved frame's Figma URL — not part of this release.
+- Feature branches `aud-50-design-system-app-shell`, `aud-51-challenge-schema`, and `aud-54-homepage-figma-alignment` still exist on GitHub (not auto-deleted — repo's `deleteBranchOnMerge` is off); safe to delete, not done automatically.
+- AUD-52 has not been scoped or started — not part of this release.
