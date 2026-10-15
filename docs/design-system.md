@@ -4,15 +4,14 @@
 
 **File:** https://www.figma.com/design/n7YeKpNgstVlKSoq46VSjj — this is the visual source of truth for StackSpeak.
 
-As inspected during Sprint 01 (via the Figma MCP `get_metadata`/`get_design_context`/`get_variable_defs` tools), the file contains at least three pages:
+As inspected during Sprint 01 (via the Figma MCP `get_metadata`/`get_design_context`/`get_variable_defs` tools), the file contains at least four pages:
 
 - **Cover & Flow** (`0:1`) — a planning document: brand title, tagline, a student-challenge-flow diagram, and screen-status/scope panels. Not implementable UI.
 - **Components** (`2:3`) — the real component library, backed by Figma variables: Button, Chip, Badge, Nav Item, Progress Bar, Step Item, Card, Mic Button, Waveform, Test Result Row, Code Editor, Terminal Panel, Stage Stepper.
 - **Brand Assets (for approval)** (`12:25`) — logo lockups, app icon, favicon, and the Pip mascot (10 expression variants), plus two annotated "Brand Sheet" reference frames. See [Mascot: Pip](#mascot-pip) below — **correction from an earlier Sprint 01 pass, which wrongly reported this page as nonexistent.**
+- **Desktop Screens** (`2:4`) — contains `9:487`, "01 Marketing Landing Page": the single, complete approved homepage frame (Product Navigation → Hero → How It Works → Course Previews → Benefits → Final CTA → Footer), confirmed 2026-10-15 and implemented in [AUD-54](https://linear.app/failed-training/issue/AUD-54). Same discoverability gap as Brand Assets below — this page wasn't found via the no-`nodeId` listing either, only once the owner supplied node `9:487` directly.
 
-**Tooling caveat (important for future agents):** `get_metadata` called with no `nodeId` — the "list top-level pages" mode — only returned `0:1` and `2:3` for this file; it silently omitted `12:25` even though that page is real, populated, and directly reachable by ID. The first Sprint 01 pass trusted that listing instead of independently checking the `node-id=12-25` URL it had been given, and incorrectly concluded the brand-assets node didn't exist. **Don't trust the no-`nodeId` page listing as exhaustive for this file — if you have a specific node ID (from a URL, from the brief, from the user), query it directly with `get_metadata`/`get_design_context` rather than relying on it appearing in the top-level listing.**
-
-Given that caveat, the Cover & Flow page's references to "Desktop Screens" and "Tablet & Mobile" pages should be treated as **unconfirmed, not disproven** — they weren't found via the (known-unreliable) top-level listing and no further node IDs for them are available to probe directly. Don't claim they exist, and don't claim they've been ruled out either — re-check directly (e.g. ask the design owner for the exact node IDs) before relying on their absence or presence. See `docs/decisions/0001-figma-screens-unavailable.md` for the full history of this gap.
+**Tooling caveat (important for future agents):** `get_metadata` called with no `nodeId` — the "list top-level pages" mode — only returned `0:1` and `2:3` for this file; it silently omitted `12:25` (Brand Assets) in Sprint 01, and `2:4` (Desktop Screens) remained unconfirmed until AUD-54 supplied node `9:487` directly. Both pages are real, populated, and directly reachable by ID. **Don't trust the no-`nodeId` page listing as exhaustive for this file — if you have a specific node ID (from a URL, from the brief, from the user), query it directly with `get_metadata`/`get_design_context` rather than relying on it appearing in the top-level listing, and never infer a frame's existence or location from component instance counts alone.** See `docs/decisions/0001-figma-screens-unavailable.md` for the full history of this gap.
 
 ## Design tokens
 
@@ -56,9 +55,9 @@ Confirmed type scale from Figma: label/md = Inter Medium 14/20, label/sm = Inter
 
 Figma components become React components under `frontend/src/components/ui/`, matching the Figma component name and prop shape (variant/size/tone) 1:1 where practical:
 
-- `Button` — `variant: primary | secondary | ghost`, `size: md | lg`. Renders a `<Link>` when `href` is passed, a native `<button>` otherwise (same visual component, correct semantics).
+- `Button` — `variant: primary | secondary | ghost`, `size: md | lg`. Renders a `<Link>` when `href` is passed, a native `<button>` otherwise (same visual component, correct semantics). As of AUD-54, `disabled` gets visible styling (`disabled:cursor-not-allowed disabled:opacity-50`) — used for the homepage's `Log in`/`Sign up`, which have no backing auth system yet (see `MicButton` for the same "no fake controls" precedent).
 - `Badge` — `tone: neutral | success | info | error | accent`.
-- `Card` — `elevation: flat | elevated`.
+- `Card` — `elevation: flat | elevated`. As of AUD-54: `highlighted?: boolean` swaps the border to `border-accent`, used for the flagship course card on the homepage.
 - `ComingSoon` — not a Figma component; a Sprint 01 composition of `Badge` + `Card` for routes with no implemented functionality yet.
 
 ### AUD-50 additions (workspace/app-shell components)
@@ -75,16 +74,30 @@ All built against the real Figma specs for their respective nodes, pulled fresh 
 - `Logo` — the real downloaded icon asset (`frontend/public/brand/logo-icon.svg`) plus the wordmark as live text matching the approved colors exactly (Stack in primary text, Speak in emerald/`text-success`) rather than an image, so it stays crisp and accessible. Used only in `SiteHeader`, per the approved scope — not introduced anywhere else.
 - `PipMascot` — wraps the 10 downloaded expression PNGs (`frontend/public/mascot/`). Static images only; no animation, no implied awareness of what the student is doing.
 
+### AUD-54 additions (homepage sections + marketing nav)
+
+Built against the real Figma spec for node `9:487` (see above). All homepage-only sections live under `frontend/src/features/home/`:
+
+- `Logo` — gained `size?: "sm" | "lg"` (default `"sm"`, unchanged). `"lg"` is the marketing lockup and uses a **dedicated asset** (`frontend/public/brand/logo-icon-sm.svg`, despite the filename — it's Figma's own "Small" size variant), not a CSS-scaled copy of the default icon: diffing the two exported SVGs showed Figma deliberately draws a thicker relative stroke at the smaller size for legibility, so scaling the existing asset would have been visually wrong.
+- `MarketingNav` (`frontend/src/components/layout/MarketingNav.tsx`) — a new homepage-only nav, rendered by `SiteHeader` when `pathname === "/"` (every other route keeps the existing in-app nav, untouched). Links: Courses, Daily Challenge, Interview Practice, How it works (`#how-it-works` anchor); `Log in`/`Sign up` as disabled `Button`s (see Button above). **Responsive deviation from Figma (which only specifies 1440px):** the inline nav doesn't appear until the `lg` breakpoint (1024px), not Tailwind's default `md` (768px) — found via Playwright QA, where the full link row + auth buttons visibly wrapped/overlapped the logo at 768px. A `lg:px-10` gutter narrower than the Figma-exact `xl:px-[120px]` buys extra room in the 1024–1279px range.
+- `Hero`, `CoursePreviews`, `Benefits` — straightforward compositions of existing components (`CodeEditor`, `MicButton`, `Waveform`, `Card`, `Badge`) against the Figma copy and layout; no new primitives needed.
+- `FinalCta` — deliberately **not** built on `Card`: its shape (centered content, asymmetric padding, accent border, no shadow) didn't fit Card's existing API without special-casing it for a one-off section.
+- `LearningSequence` — rewritten for AUD-54 to match Figma's 4-step "How It Works" section (was 6 steps pre-AUD-54) and to compose `Card` instead of duplicating its border/background styling.
+- `SiteFooter` — updated to the Figma-exact tagline (`StackSpeak — Read it. Explain it. Fix it. Defend it.`, no copyright line) and 5 links (Courses, Practice Lab, Interview Practice, Privacy, Terms). `Interview Practice`, `Privacy`, and `Terms` didn't have routes before AUD-54 — see below.
+- Three new `ComingSoon`-backed stub routes: `/interview-practice`, `/privacy`, `/terms` — same pattern as the pre-existing `/courses` and `/practice-lab`, added so the new nav/footer links go somewhere real instead of a dead link or a non-clickable pseudo-link.
+- `BackendStatus` (the Sprint-01 "System status" widget on the old homepage) — **deleted**. It was a dev diagnostic, never part of any approved design; backend connectivity is verified directly against the API in QA instead of via a homepage widget.
+
 ### Why PNG for Pip but SVG for the logo
 
 Figma's SVG export for Pip returns 15–20 tiny fragment files per expression (eyes, headphones, antenna, etc. as separate vector layers), not one clean file — not something worth hand-reassembling. The single rasterized PNG export per expression is the pragmatic, faithful choice. The logo icon, by contrast, exported as one clean 942-byte SVG, so that's what's used — vector where it's clean, raster where it isn't.
 
 ## Responsive behavior
 
-- Nav collapses to a hamburger-triggered menu below Tailwind's `md` breakpoint (`frontend/src/components/layout/SiteHeader.tsx`); verified at common mobile (375px) and desktop (1280px+) widths.
+- In-app nav (`SiteHeader`, every route except `/`) collapses to a hamburger-triggered menu below Tailwind's `md` (768px) breakpoint; verified at common mobile (375px) and desktop (1280px+) widths.
+- Homepage marketing nav (`MarketingNav`, `/` only) collapses to a hamburger below `lg` (1024px) instead — see "AUD-54 additions" above for why 768px doesn't fit.
 - Page content uses `max-w-*` containers with horizontal padding rather than fixed widths, so it reflows rather than overflowing at intermediate widths.
 - As of AUD-50: verified with real browser screenshots (Playwright) at 320, 390, 768, and 1440px on both `/` and `/daily-challenge` — zero horizontal overflow at any width, `CodeEditor`'s code block scrolls internally rather than pushing the page wider.
-- No Figma tablet/mobile screens exist to diff against yet (see above) — current responsive behavior is a reasonable default, not a pixel match to an inspected mobile mockup.
+- As of AUD-54: re-verified at the same four widths on the rebuilt homepage plus all other routes — zero horizontal overflow, zero console errors, functional nav/CTAs/hamburger at every width. Figma specifies only the 1440px desktop frame for the homepage; the 768px nav-overlap bug above was caught by this QA pass, not by diffing against an inspected mobile mockup — none exists for this frame either.
 
 ## Mascot: Pip
 
