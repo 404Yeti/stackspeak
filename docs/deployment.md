@@ -42,9 +42,14 @@ The deployed app must be clearly labeled **"StackSpeak v0.1 Public Preview"** (e
 
 ## Outstanding
 
-No Vercel or Render CLI, API token, or stored credentials exist in the agent's execution environment (checked: no `vercel`/`render` CLI installed, no `VERCEL_TOKEN`/`RENDER_API_KEY`-style env vars, no `~/.vercel`/`~/.render` config). The agent cannot create or configure services on either platform without one of:
+**Re-checked 2026-10-15 after the owner reported connecting Render/Vercel to ChatGPT.** Confirmed via three independent checks in this Claude Code environment:
+1. Searched this session's full tool catalog (the same mechanism that surfaces the Figma and Linear tools used elsewhere in this project) for any Render/Vercel connector — none found.
+2. Scanned environment variables for `VERCEL_*`/`RENDER_*` — none found.
+3. Checked for `vercel`/`render` CLI binaries and `~/.vercel`/`~/.render` config directories — none found.
 
-- An API token (`VERCEL_TOKEN`, `RENDER_API_KEY`) provided to the environment, so the CLIs can run non-interactively, or
-- The project owner performing the dashboard setup directly, using the exact settings tables above, then sharing the resulting URLs back for the agent to run the CORS-update step and smoke tests.
+**Conclusion:** Render and Vercel are not integrated as connectors in this Claude Code environment at all — this is a product/environment boundary, not a broken or misconfigured connection, and not something a ChatGPT-side connection affects (separate products, separate connector ecosystems). The agent cannot create or configure services on either platform without one of:
+
+- An API token (`VERCEL_TOKEN`, `RENDER_API_KEY`) made available to this environment through a supported mechanism (not pasted inline in chat), so the CLIs can run non-interactively, or
+- The project owner performing the dashboard setup directly in **"robert's workspace"** on Render (free tier) and the equivalent on Vercel, using the exact settings tables above, then sharing the resulting URLs back so the agent can run the CORS-update step and smoke tests.
 
 This file will be updated with real URLs, final verification results, and any configuration changes once deployment actually completes.
