@@ -1,6 +1,6 @@
 # Deployment — StackSpeak v0.1 Public Preview
 
-**Status as of 2026-10-15: RELEASED.** Both services deployed, integrated, and verified end-to-end in a real browser — nav, responsiveness, backend connectivity, and CORS all confirmed working. The homepage hero badge now reads "StackSpeak v0.1 Public Preview," verified live. **StackSpeak v0.1 Public Preview is considered released.**
+**Status as of 2026-10-15: RELEASED.** Both services deployed, integrated, and verified end-to-end in a real browser — nav, responsiveness, backend connectivity, and CORS all confirmed working. The homepage hero badge reads "StackSpeak v0.1 Public Preview." AUD-50 (design system/app shell) and AUD-51 (challenge schema + read-only API) are both merged and live, verified in production. **StackSpeak v0.1 Public Preview is considered released.**
 
 ## Live URLs
 
@@ -12,8 +12,8 @@
 ## GitHub
 
 - Default branch: `main`
-- Latest verified commit: `5e4480b` (also the commit Render reports running)
-- History: `2020956` (bootstrap) → `963e3d8` (owner review) → `7f316e6` (brand approval) → `cbfd603`/`4062fb8` (deployment docs) → `3644afd` (commit-SHA health field) → `8b5695b` → `5e4480b` (deployment docs)
+- Latest verified commit: `4b5e7f0` (also the commit Render reports running — see "AUD-51 release" below)
+- History: `2020956` (bootstrap) → `963e3d8` (owner review) → `7f316e6` (brand approval) → `cbfd603`/`4062fb8` (deployment docs) → `3644afd` (commit-SHA health field) → `8b5695b` → `5e4480b` (deployment docs) → `a3b24dd`/`8db5c67`/`bc8fd3e` (v0.1 preview release) → PR #1 `beef0ae6` (AUD-50) → `291f539`/`652fb8c` (docs) → PR #2 `4b5e7f0` (AUD-51)
 
 ## Backend → Render ✅ Live
 
@@ -92,9 +92,29 @@ The homepage hero badge was changed from "Sprint 01 — Application Foundation" 
 | Skip-to-content link still works | ✅ first Tab stop, all 4 widths |
 | Backend connectivity | ✅ "Online — Connected to stackspeak-api" |
 
+## AUD-51 release (2026-10-15)
+
+**PR [#2](https://github.com/404Yeti/stackspeak/pull/2) merged** → `main` @ merge commit `4b5e7f00cde78db421ad2730e39854bba559c908`. Backend-only change (typed challenge schema, seed, read-only API — see `docs/challenge-schema.md`); frontend untouched.
+
+**CI:** both `frontend` and `backend` jobs green on the PR head commit (`416fa1f`) before merge, and again on the `main` push after merge — no new findings, the AUD-50 CI-ordering fix held.
+
+**Deployment verification (all against the live production URLs, not inferred):**
+
+| Check | Result |
+|---|---|
+| `GET /api/health` → 200 | ✅ |
+| Deployed commit == merge commit | ✅ `{"commit":"4b5e7f00cde78db421ad2730e39854bba559c908"}` — exact match, confirmed within ~15s of merge (Render auto-deploy) |
+| `GET /api/challenges` → 200 | ✅ returns the one seeded `ChallengeSummary` |
+| `GET /api/challenges/average-of-list` → 200 | ✅ full public detail |
+| `GET /api/challenges/nonexistent` → 404 | ✅ |
+| Private fields excluded from both endpoints | ✅ checked **programmatically** (parsed JSON, diffed keys against `{corrected_solution, instructor_notes, evaluation_guidance, hidden}`) — zero leakage, top level and inside every test case |
+| Hidden test case (`input=[42]`) excluded | ✅ 4 of 5 test cases returned, exactly as designed |
+| Frontend backend-connectivity still "Online" | ✅ unaffected, as expected for a backend-only change |
+
 ## Outstanding
 
 No release blockers remain. For future sprints, not this one:
-- No persistence, auth, or code-execution sandbox — unchanged from Sprint 01, intentional.
+- No persistence, auth, or code-execution sandbox — unchanged from Sprint 01, intentional. Challenge attempts/progression and stage persistence are explicitly deferred (see `docs/challenge-schema.md`).
 - `npm audit` dev-only `braces` advisory — unchanged, documented in `docs/development.md`.
-- Feature branch `aud-50-design-system-app-shell` still exists on GitHub (not auto-deleted — repo's `deleteBranchOnMerge` is off); safe to delete, not done automatically.
+- Feature branches `aud-50-design-system-app-shell` and `aud-51-challenge-schema` still exist on GitHub (not auto-deleted — repo's `deleteBranchOnMerge` is off); safe to delete, not done automatically.
+- AUD-54 (homepage Figma alignment) remains blocked pending the approved frame's Figma URL — not part of this release.
