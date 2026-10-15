@@ -4,12 +4,15 @@
 
 **File:** https://www.figma.com/design/n7YeKpNgstVlKSoq46VSjj — this is the visual source of truth for StackSpeak.
 
-As inspected during Sprint 01 (via the Figma MCP `get_metadata`/`get_design_context`/`get_variable_defs` tools), the file contains exactly two pages:
+As inspected during Sprint 01 (via the Figma MCP `get_metadata`/`get_design_context`/`get_variable_defs` tools), the file contains at least three pages:
 
 - **Cover & Flow** (`0:1`) — a planning document: brand title, tagline, a student-challenge-flow diagram, and screen-status/scope panels. Not implementable UI.
 - **Components** (`2:3`) — the real component library, backed by Figma variables: Button, Chip, Badge, Nav Item, Progress Bar, Step Item, Card, Mic Button, Waveform, Test Result Row, Code Editor, Terminal Panel, Stage Stepper.
+- **Brand Assets (for approval)** (`12:25`) — logo lockups, app icon, favicon, and the Pip mascot (10 expression variants), plus two annotated "Brand Sheet" reference frames. See [Mascot: Pip](#mascot-pip) below — **correction from an earlier Sprint 01 pass, which wrongly reported this page as nonexistent.**
 
-The cover page's own text references "Desktop Screens" and "Tablet & Mobile" pages that **do not exist in this file** — there are no landing page, dashboard, or challenge-workspace mockups to inspect yet. The Pip mascot / brand-assets node referenced in early planning (`node-id=12-25`) also does not exist in the file's node tree. See `docs/decisions/0001-figma-screens-unavailable.md` for how Sprint 01 handled this gap. Don't claim either exists in future work without re-checking the file.
+**Tooling caveat (important for future agents):** `get_metadata` called with no `nodeId` — the "list top-level pages" mode — only returned `0:1` and `2:3` for this file; it silently omitted `12:25` even though that page is real, populated, and directly reachable by ID. The first Sprint 01 pass trusted that listing instead of independently checking the `node-id=12-25` URL it had been given, and incorrectly concluded the brand-assets node didn't exist. **Don't trust the no-`nodeId` page listing as exhaustive for this file — if you have a specific node ID (from a URL, from the brief, from the user), query it directly with `get_metadata`/`get_design_context` rather than relying on it appearing in the top-level listing.**
+
+Given that caveat, the Cover & Flow page's references to "Desktop Screens" and "Tablet & Mobile" pages should be treated as **unconfirmed, not disproven** — they weren't found via the (known-unreliable) top-level listing and no further node IDs for them are available to probe directly. Don't claim they exist, and don't claim they've been ruled out either — re-check directly (e.g. ask the design owner for the exact node IDs) before relying on their absence or presence. See `docs/decisions/0001-figma-screens-unavailable.md` for the full history of this gap.
 
 ## Design tokens
 
@@ -32,6 +35,15 @@ Pulled from the Components page via `get_design_context` (not hand-copied from t
 | Icon muted | `#64748b` | `text-icon-muted` | Nav Item default icon stroke |
 | Radius sm/md/lg/full | `6px / 10px / 14px / 999px` | `rounded-sm/md/lg/full` | `--radius-md`, `--radius-lg`, `--radius-full` |
 | Spacing xs–xl | `4 / 8 / 12 / 16 / 24px` | Tailwind default scale | `--space-xs…--space-xl` |
+
+The Brand Sheet (`12:25` → `13:936`/`14:237`) independently confirms the product-UI palette above (Brand Purple `#8B5CF6`, Brand Blue `#60A5FA`, Emerald/Speak `#34D399`, Ink/Canvas `#0B1020`, Surface `#131B2E`, Text `#F8FAFC`, Muted `#94A3B8`) and adds two **Pip-only** accent colors, not used anywhere in the current product UI and not wired into Tailwind tokens yet:
+
+| Token | Value | Scope |
+|---|---|---|
+| Error (Pip only) | `#F87171` | matches the existing `text-error` token — reused, not new |
+| Idea (Pip only) | `#FBBF24` (amber) | **new** — only appears on Pip's "Idea" expression; no product-UI usage yet, not added to `globals.css` |
+
+Icon border treatment: a `#8B5CF6 → #60A5FA` gradient, used on the logo icon — not currently used in product UI.
 
 ## Typography
 
@@ -59,4 +71,8 @@ Components not yet built (Mic Button, Waveform, Test Result Row, Code Editor, Te
 
 ## Mascot: Pip
 
-Pip's brand assets are marked for approval in the product brief and are not present in the Figma file as of Sprint 01 (see above). No mascot UI, image, or animation is implemented. The only Sprint 01 scaffolding is a reserved `frontend/public/mascot/` directory for assets once they're approved and exported — nothing references it yet.
+**Correction (post-Sprint-01-review):** Pip's assets *are* accessible in Figma — see the tooling caveat above. They live on the **Brand Assets (for approval)** page (`12:25`), in a component set at `13:293` named "Pip Mascot" with a 10-value `Expression` property: `Idle`, `Listening`, `Thinking`, `Explaining`, `Success`, `Confused`, `Error`, `Idea`, `Coding`, `Celebrating`. Also on that page: a "Logo Icon" set (`12:66`, Theme × Size variants), "Logo Horizontal" set (`12:135`, Theme × Layout), "App Icon" set (`12:808`, 4 styles), and a "Favicon" set (`12:824`, 3 sizes). Two large annotated frames (`13:936` "Brand Sheet — StackSpeak" and `14:237` "Brand Sheet — Pip, Color & Type") document usage rules, clear space, minimum sizes, and the color/type reference above.
+
+**Still not integrated, and that's correct, not a gap:** the brand sheet's own meta text reads *"Brand Assets v0.1 — for approval. Not yet applied to any product screen. Approve before integration."* — these are explicitly unapproved design candidates per the brief's own instruction (§3: "treat them as design candidates until the owner confirms final approval"). This review only corrected the documentation to reflect that the assets exist and are inspectable; it did **not** pull them into the Figma file, export them, or wire any mascot UI into the product — that would be scope expansion pending approval, and Sprint 01's own scope explicitly excludes an animated mascot system. The reserved, empty `frontend/public/mascot/` directory remains the only Sprint 01 scaffolding.
+
+Usage rules worth preserving for whenever this is approved: logo is always the brand signature, Pip never replaces it (never in headers/favicons/app icons); Pip appears at smaller visual weight alongside the logo, in onboarding/empty/celebration states; clear space equal to half the icon height on all sides; minimum sizes of 16px (icon, small weight ≤32px), 140px (compact lockup), 240px (full lockup with tagline).
