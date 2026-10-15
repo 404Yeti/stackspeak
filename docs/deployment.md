@@ -1,6 +1,8 @@
 # Deployment — StackSpeak v0.1 Public Preview
 
-**Status as of 2026-10-15: GitHub done. Render/Vercel deployment blocked — no platform credentials available in the agent environment.** See "Outstanding" below.
+**Status as of 2026-10-15: GitHub done. Render deployment reportedly configured by the owner in "robert's workspace," unverified pending a URL (no Render connector/API access from this agent). Vercel not started.** See "Outstanding" below.
+
+**Commit verification without dashboard access:** `/api/health` now returns a `commit` field, read from Render's auto-injected `RENDER_GIT_COMMIT` env var (null outside Render). Once a URL is available: `curl <render-url>/api/health | jq -r .commit` should equal `git rev-parse main`. This requires Render's "Auto-Deploy" to be on for the service, or a manual redeploy after this change (`3644afd`) reaches `main`.
 
 ## Labeling
 
