@@ -7,18 +7,11 @@ import { TerminalPanel } from "@/components/ui/TerminalPanel";
 import { MicButton } from "@/components/ui/MicButton";
 import { Waveform } from "@/components/ui/Waveform";
 import { PipMascot } from "@/components/ui/PipMascot";
+import { SAMPLE_CHALLENGE_CODE } from "@/lib/sampleChallenge";
 
 export const metadata: Metadata = {
   title: "Daily Challenge — StackSpeak",
 };
-
-const SAMPLE_CODE = `def get_average(nums):
-    total = 0
-    for n in nums:
-        total += n
-    return total / len(nums)
-
-print(get_average([10, 20, 30]))`;
 
 export default function DailyChallengePage() {
   return (
@@ -54,7 +47,7 @@ export default function DailyChallengePage() {
 
         <div className="flex flex-col gap-2">
           <p className="font-mono text-xs text-text-muted">Sample challenge — not a real assignment</p>
-          <CodeEditor filename="main.py" code={SAMPLE_CODE} />
+          <CodeEditor filename="main.py" code={SAMPLE_CHALLENGE_CODE} />
         </div>
 
         <div className="flex flex-wrap items-start gap-6">

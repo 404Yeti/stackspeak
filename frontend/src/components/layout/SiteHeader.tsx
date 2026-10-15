@@ -6,10 +6,15 @@ import { useState } from "react";
 import { primaryNavLinks } from "@/lib/navigation";
 import { Badge } from "@/components/ui/Badge";
 import { Logo } from "@/components/ui/Logo";
+import { MarketingNav } from "@/components/layout/MarketingNav";
 
 export function SiteHeader() {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
+
+  if (pathname === "/") {
+    return <MarketingNav />;
+  }
 
   return (
     <header className="sticky top-0 z-10 border-b border-border-subtle bg-background/95 backdrop-blur">
