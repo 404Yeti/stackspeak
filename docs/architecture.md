@@ -28,12 +28,12 @@ There is no shared code between the two apps in Sprint 01 — no shared package,
 
 No database, ORM, or auth library is introduced yet — none is needed for the Sprint 01 scope (a homepage, static nav, and a health check).
 
-## Planned integration points (not built yet)
+## Planned integration points
 
-These are architectural placeholders only — do not implement the full systems in Sprint 01 or later without an approved issue:
+These are architectural placeholders — do not implement the full systems without an approved issue:
 
-- **Courses → Lessons → Challenges** data model, multi-language challenge support.
-- **Challenge attempts & progression** per student.
+- **Courses → Lessons → Challenges** data model, multi-language challenge support. **Partially implemented (AUD-51):** individual challenges have a typed, validated schema and a read-only API (`backend/app/models/challenge.py`, `backend/app/api/challenges.py` — see `docs/challenge-schema.md`), with a `language` field designed to extend beyond Python. **Not yet built:** course/lesson grouping above individual challenges, and any way to add a challenge other than editing `backend/app/data/challenges.py` directly.
+- **Challenge attempts & progression** per student — still not built; needs auth and a database, neither introduced yet. AUD-51 explicitly deferred "stage persistence" (which stage a student is on) for this reason — see `docs/challenge-schema.md`.
 - **User accounts & student profiles**, separate from instructor accounts.
 - **Audio recording & transcription** — a speech-to-text provider abstraction (interface in `backend/app/`, concrete provider behind it, swappable).
 - **Text-to-speech** — same provider-abstraction pattern, for Pip's spoken responses.
