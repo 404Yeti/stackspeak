@@ -259,8 +259,9 @@ test.describe("public/private boundary", () => {
     expect(await page.content()).not.toContain(SOLUTION_MARKER);
 
     await toFeedback(page);
+    // The heading renders before /review resolves; wait for the reference to appear.
+    await expect(page.getByText(SOLUTION_MARKER)).toBeVisible();
     expect(requested).toContain("GET /api/challenges/average-of-list/review");
-    expect(await page.content()).toContain(SOLUTION_MARKER);
   });
 
   test("nothing the student writes is sent anywhere", async ({ page }) => {
