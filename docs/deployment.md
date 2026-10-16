@@ -136,10 +136,33 @@ The homepage hero badge was changed from "Sprint 01 — Application Foundation" 
 | Backend unaffected | ✅ `/api/health` still reports commit `4b5e7f0` (AUD-51), as expected for a frontend-only change; `/api/challenges` still serves correctly |
 | Screenshots match Figma `9:487` | ✅ section ordering, copy, branding confirmed at all 5 widths |
 
+## AUD-52 PR A release (stage-aware challenge API)
+
+PR [#4](https://github.com/404Yeti/stackspeak/pull/4), reviewed head `542df98`, merge commit `97d3161` (2026-10-16). **AUD-52 is still In Progress** — this is the backend half; the interactive frontend (PR B) is not released.
+
+**Pre-merge:** head `542df98` verified; checks `backend`, `frontend`, `Vercel`, `Vercel Preview Comments` all green; mergeable/clean; diff limited to the 7 approved files (`backend/app/{api/challenges,data/challenges,models/challenge}.py`, two test files, `docs/architecture.md`, `docs/challenge-schema.md`); merged with a merge commit (same as PRs #1–#3). Local: pytest 21 passed, ruff and mypy clean.
+
+**Post-merge production verification** (public HTTP against `https://stack-speak.onrender.com`):
+
+| Check | Result |
+|---|---|
+| `/api/health` commit | ✅ `97d31615269880988c0934554ab5998b2b010361` — exactly the merge commit (was `4b5e7f0` before) |
+| `GET /api/challenges/average-of-list` | ✅ 200; keys exactly `id, version, title, language, difficulty, topic, learning_objectives, starter_code, explain_prompts, fix_prompts`; `version` 2 |
+| `/trace`, `/defend`, `/review` | ✅ 200 each; key sets exactly as the contract in `docs/challenge-schema.md` |
+| Initial load has no answer-revealing content | ✅ none of `bug_description`, `expected_behavior`, `test_cases`, `explanation_prompts`, `defend_prompts`, `corrected_solution`; none of `zerodivision`, `valueerror`, `empty`, `raise ` in the text |
+| Hidden test / instructor-only data | ✅ `[42]` case absent (`/trace` returns the 4 public cases, none with a `hidden` key); `instructor_notes`, `evaluation_guidance`, and instructor text fragments absent from all four responses |
+| Reference solution only in `/review` | ✅ present in `/review`, absent from load, `/trace`, `/defend` |
+| `Cache-Control: no-store` | ✅ on `/trace`, `/defend`, `/review` (not on the load response, by design) |
+| Unknown challenge | ✅ 404 on all four paths |
+| Browser CORS | ✅ `access-control-allow-origin: https://stackspeak.vercel.app` on load and `/review` |
+| Frontend healthy | ✅ `/`, `/daily-challenge`, `/courses` return 200; homepage tagline present; `/daily-challenge` is still the AUD-50 static preview (the frontend never called the changed endpoint) |
+
+**Compatibility note:** this release removed five fields from `GET /api/challenges/{id}` (breaking for any external consumer; none exist in this repo).
+
 ## Outstanding
 
 No release blockers remain. For future sprints, not this one:
 - No persistence, auth, or code-execution sandbox — unchanged from Sprint 01, intentional. Challenge attempts/progression and stage persistence are explicitly deferred (see `docs/challenge-schema.md`). Homepage `Log in`/`Sign up` are intentionally disabled until auth is scoped.
 - `npm audit` dev-only `braces` advisory — unchanged, documented in `docs/development.md`.
 - Feature branches `aud-50-design-system-app-shell`, `aud-51-challenge-schema`, and `aud-54-homepage-figma-alignment` still exist on GitHub (not auto-deleted — repo's `deleteBranchOnMerge` is off); safe to delete, not done automatically.
-- AUD-52 has not been scoped or started — not part of this release.
+- AUD-52: PR A (backend) released (above); PR B (frontend flow) in progress, unreleased.
