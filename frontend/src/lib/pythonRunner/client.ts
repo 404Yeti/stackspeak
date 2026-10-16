@@ -16,8 +16,15 @@ export type RunnerClientOptions = {
 
 const LOOPBACK = new Set(["localhost", "127.0.0.1", "[::1]"]);
 
-/** https only, except loopback (local development and tests). Returns the bare origin. */
-export function parseRunnerUrl(runnerUrl: string): string {
+/**
+ * https only, except loopback (local development and tests). Returns the bare origin.
+ *
+ * Refuses a runner on the app's own origin (or, off loopback, the app's own host on another port): the
+ * iframe is sandboxed with `allow-same-origin`, which only isolates anything when the runner is a
+ * DIFFERENT SITE. A same-origin runner would make `allow-scripts allow-same-origin` equivalent to no
+ * sandbox at all, so a mis-set NEXT_PUBLIC_PYTHON_RUNNER_URL must fail closed rather than quietly run.
+ */
+export function parseRunnerUrl(runnerUrl: string, pageLocation: { origin: string; hostname: string } | undefined = globalThis.location): string {
   let url: URL;
   try {
     url = new URL(runnerUrl);
@@ -30,6 +37,13 @@ export function parseRunnerUrl(runnerUrl: string): string {
   }
   if ((url.pathname !== "/" && url.pathname !== "") || url.search || url.hash || url.username || url.password) {
     throw new TypeError("The runner URL must be a bare origin (no path, query, hash, or credentials).");
+  }
+  if (pageLocation) {
+    const sameOrigin = url.origin === pageLocation.origin;
+    const sameHost = url.hostname === pageLocation.hostname && !LOOPBACK.has(url.hostname);
+    if (sameOrigin || sameHost) {
+      throw new TypeError("The runner must be hosted on a different site from the app (a same-site runner defeats the iframe sandbox).");
+    }
   }
   return url.origin;
 }

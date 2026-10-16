@@ -163,3 +163,72 @@ Other numbers: snapshot ≈30 MB in memory, ≈6.4 MB over the wire for the runt
 ## WebKit and mixed content (found by CI, AUD-60 PR 1)
 
 The first CI run showed every WebKit e2e test failing with "the runner did not respond", while Chromium and Firefox passed. The new `embedding.spec.mjs` probe isolated it: in WebKit the bridge iframe never loaded (no `load` event, no CSP violation, empty frame URL) when an **https** app page embedded an **http** loopback runner. Chromium and Firefox exempt loopback from mixed-content blocking; WebKit does not. This is a property of the test topology, not of the runner: production serves the runner over https. The e2e suite therefore serves the runner, attacker and app-API servers over https (throwaway self-signed certificate, `ignoreHTTPSErrors`), which also keeps the exfiltration tests honest (an http attacker would be unreachable from WebKit through mixed-content blocking alone, giving a false "no leak"). Nothing in the runner, its CSP or its isolation was changed.
+
+
+## Final security and merge-readiness review (PR 1, 2026-10-16)
+
+Scope: `runner/src/{bridge,worker,protocol,output-sink}.mjs`, `runner/src/harness.py`, `frontend/src/lib/pythonRunner/*`, the Vercel project, licences, rollback. Method: full read of all of the above plus the e2e evidence. **No exploitable defect found; one fail-open misconfiguration fixed; four boundary properties pinned by new tests.**
+
+### Code-review findings
+
+| # | Area | Finding | Result |
+|---|---|---|---|
+| 1 | `client.ts:20-35` | A runner URL on the **app's own origin/host** would make `sandbox="allow-scripts allow-same-origin"` equivalent to no sandbox, and nothing refused it (fail-open on a mis-set `NEXT_PUBLIC_PYTHON_RUNNER_URL`). | **Fixed**: `parseRunnerUrl` throws unless the runner is a different origin and (off loopback) a different host; `getPythonRunnerConfig` therefore stays OFF. Tests: `client.test.ts` "runner must be a different site…". Not detectable by registrable domain without a public-suffix list; the cross-site requirement remains a deployment rule (below). |
+| 2 | `bridge.mjs:52-56` | Handshake accepted only from `window.parent`, an approved origin, a schema-valid init, exactly one transferred port, once. | Correct. Covered by "unapproved parent never gets a handshake", init fixtures. |
+| 3 | `client.ts:101-111` | Init is posted with the runner's exact origin as `targetOrigin`; if the frame shows an error page the message is not delivered and the handshake times out (15 s, `unavailable`). | Correct (fail closed; 15 s latency is the cost). |
+| 4 | `bridge.mjs:100-126` | Worker traffic is rebuilt field-by-field from validated messages; `worker.onmessage = null`. `snapshot` is accepted only in `build` mode, and the builder never runs student code. | Correct. |
+| 5 | `worker.mjs:54-65,86-87` | The canary needs a real `securitypolicyviolation`; absence ⇒ `csp-not-enforced` ⇒ bridge `disabled` for the page. A missing header cannot be inherited from the document CSP for http(s) workers. | Correct; tested with the header stripped, in all three engines. |
+| 6 | `worker.mjs:142-154` | `harden()` is defence in depth only. Student code shares the worker's realm and can reach `MessagePort.prototype`; if it captured the worker's private port it could post any schema-valid message. | Accepted and bounded: the CSP (`script-src` without `'unsafe-eval'`) blocks `eval`/`Function`, the usual route to capture the port (new test); swallowing `postMessage` only times out the student's own run (new test); the bridge caps output, ignores forged `snapshot` outside build mode, and the worker is terminated after every run. **A run result is display data, never a trusted verdict** (see "output is not tamper-proof" above; PR 2 must not grade from it). |
+| 7 | `bridge.mjs` output accounting | Bridge/client count UTF-16 units, the worker counts bytes. Units ≤ bytes, so the bridge bound is never looser than documented; it only matters if the worker is bypassed (see 6). | No change. |
+| 8 | `bridge.mjs:176-190` | Retry after `restore-failed` can overshoot the 30 s init budget by ≤ 500 ms (`Math.max(500, remaining)`). | Accepted. |
+| 9 | Races/stale state | Every handler is guarded by `run !== current`; `teardown` clears timers, nulls `onmessage`, terminates and closes; `dispose` clears the heartbeat and snapshot. Concurrent `run()` calls: second gets `busy`. | Correct; lifecycle suite covers single-flight, stop, dispose, no workers left. |
+| 10 | State contamination | Fresh worker per run, snapshot taken before any student code, `random.seed()` on boot. Python's string-hash seed is frozen in the snapshot (every restored interpreter hashes strings identically): harmless here, noted. | Accepted. |
+| 11 | Supply chain | Exact `pyodide@314.0.7`, lockfile, SHA-256 manifest checked at build and against the deployed files; `ws`/`@types/emscripten` are not shipped. Every Vercel build runs `npm ci` from the lockfile. | Residual: a compromised upstream release would be caught only by the committed manifest, which a maintainer must update deliberately. |
+
+New regression tests (`runner/e2e/security.spec.mjs`, Chromium + Firefox verified locally, WebKit in CI): "dynamic code generation is blocked by the CSP", "swallowing the worker's own postMessage only times out THEIR run". An initial attempt to test a port hijack via `js.eval` was vacuous (the CSP blocked the eval — which is itself the result recorded above); it was replaced rather than kept.
+
+### Vercel deployment exposure (`stackspeak-runner`, `prj_JKO6cuDwJL37lILVUJxiC9Tpzf5I`)
+
+Inspected via the API (read-only): no environment variables, no functions/serverless output (static `dist/` only), no cookies, no API endpoints, Git not connected, `gitForkProtection` on. Everything served is intentionally public (open-source runtime + our own runner code); `build-info.json` exposes only the version, file names and approved parent. The StackSpeak app project has no runner variables (`NEXT_PUBLIC_API_URL` only), so Run Code is OFF in production by construction.
+
+* **CORS `*`** is added by Vercel to static files. It exposes nothing private (all files are public, no credentials, no cookies). It does not help an attacker: the worker's `connect-src 'self'` and the absence of any app secret on this origin mean there is nothing to read.
+* **Framing**: only `frame-ancestors https://stackspeak.vercel.app`, from the committed `vercel.json`, identical on every deployment of the project. A preview of the *app* (`stackspeak-git-*.vercel.app`) is not approved and gets no runner; this is intended. To test the runner from an app preview, add that exact origin to `config/runner.config.json`, regenerate, and review — never a wildcard.
+* **Production alias vs previews**: all deployments of the runner project carry the same approved-parent list, so a preview cannot be embedded by anyone the production alias refuses, and the app only ever talks to the URL in `NEXT_PUBLIC_PYTHON_RUNNER_URL`. **Old deployments stay reachable forever** at their own URLs; a vulnerable build must therefore be *removed*, not only superseded (runbook below).
+* **Trust relationship**: the runner trusts exactly one parent origin; the app trusts the runner only by URL. The runner must remain a different *site* from the app. `*.vercel.app` is on the public-suffix list, so `stackspeak.vercel.app` and `stackspeak-runner.vercel.app` are different sites; a custom domain for the runner must NOT be a subdomain of the app's registrable domain unless that is a deliberate, re-reviewed decision.
+* **Recommended protections**: keep Git disconnected until the runner has its own reviewed release process (then connect with the ignore-build step in `docs/deployment.md`); do not enable Vercel Authentication on the production alias (the iframe cannot complete a login); require 2FA on the Vercel team; restrict who can run `vercel deploy --prod` (Hobby plan has no deploy protection or per-project roles — a limitation to revisit if the team moves to Pro); keep `verify-deployment.mjs` as the post-deploy gate.
+
+### Licence review (technical findings; **not legal approval**)
+
+Verified technically: `pyodide@314.0.7` is declared MPL-2.0 and is redistributed **unmodified** (every shipped file matches the committed SHA-256 manifest); runtime dependencies `ws` (MIT) and `@types/emscripten` (MIT) are not shipped; dev dependencies are build/test-only and not shipped; the `pyodide` package contains no LICENSE file; `/THIRD-PARTY-NOTICES.txt` is served and checked by `verify-deployment.mjs`. The wasm bundles CPython (PSF License v2) and other components (string inspection found expat, mpdecimal, bzip2, liblzma; list not exhaustive). `pyodide-lock.json` lists 357 packages, none of which are distributed (only the core runtime is shipped).
+
+Needs human/legal review (gate G6): (a) whether linking to the MPL-2.0 text and the source repository satisfies MPL §3.2 for the Executable Form, or the text should be reproduced; (b) whether the PSF licence text and the permissive components' copyright notices must be reproduced in the notices file (it currently links to them); (c) whether StackSpeak's own runner code, which is not a modification of MPL files, needs any statement; (d) the complete component inventory of `pyodide.asm.wasm`.
+
+### Rollback and kill switch (rehearsed 2026-10-16 on the runner project only)
+
+Measured against `https://stackspeak-runner.vercel.app` (production alias), using the Vercel CLI; the StackSpeak app project was never touched. The discriminator between builds was `/THIRD-PARTY-NOTICES.txt` (404 on the first build, 200 on the current one).
+
+| Step | Command | Observed |
+|---|---|---|
+| Promote a new build | `vercel deploy --prod --scope robert-leybas-projects` | alias serves new build within seconds (notices 404 → 200) |
+| **Rollback** to the previous build | `vercel rollback <previous-deployment-url> --scope robert-leybas-projects --yes` | "Success", 6 s wall clock; alias back to the old build (notices 200 → 404) |
+| Roll forward | `vercel rollback <newer-deployment-url> …` | back to the new build |
+| **Kill switch** (stop serving everything) | `vercel api /v1/projects/<id>/pause --method POST` | alias, every deployment URL and every asset return **503 `DEPLOYMENT_PAUSED`** |
+| Restore | `vercel api /v1/projects/<id>/unpause --method POST` | recovered in under 30 s (briefly mixed 503/200 while caches converge) |
+| **Delete a vulnerable build** | `vercel remove <deployment-url> --yes` | throwaway deployment: 200 → **404** within seconds; production alias unaffected |
+
+How a security issue is handled, fastest first:
+1. **Stop the runner now (seconds, no app deploy):** pause the runner project (above). The client's handshake then times out (`unavailable`, retryable, 15 s) and Run stays unavailable — fail closed. The rest of StackSpeak is unaffected because Run Code is a separate, optional feature.
+2. **Revert the runner:** `vercel rollback` to the last known-good deployment, then `node scripts/verify-deployment.mjs https://stackspeak-runner.vercel.app`.
+3. **Remove the bad build(s):** `vercel remove` each affected deployment (old URLs otherwise remain live and embeddable by the approved parent).
+4. **Turn the feature off in the app:** unset `NEXT_PUBLIC_PYTHON_RUNNER_ENABLED` and redeploy the app (NEXT_PUBLIC variables are inlined at build time, so this needs an app deploy; step 1 is the immediate lever). Not required while the flag is already off.
+5. **Pyodide upgrades** never overwrite: add the new version, regenerate the manifest and `vercel.json`, deploy as a preview, run the verifier and the e2e suite, then promote. Rollback = step 2.
+
+Caveats found while rehearsing: the project's first deployment was assigned `target: production` automatically; Vercel does not expose the Hobby plan's deployment protection; a paused project returns 503 for everything including the notices file.
+
+### Release-gate classification
+
+**A. Merge blockers for PR #7 (infrastructure only)** — all met at the time of writing: CI green on Chromium, Firefox and WebKit; deployed verifier 70/70 and deployed e2e subset green; no known defect; threat model, deployment, rollback and licence findings documented; feature flag OFF; no UI. Not blockers for merging: anything below.
+
+**B. Blockers for enabling Run Code in production** (flag stays OFF until all are closed): real-device Safari/iOS and Android testing incl. memory and start-up on low-end phones (G2/G3); independent security review (G5); human/legal MPL-2.0 and notices sign-off (G6); rollback owner and drill accepted by the team (G9); PR 2 (UI) and its own review; decision on Vercel project protections (2FA, who may deploy to production); the unresolved memory risk below.
+
+**Unresolved browser-memory risk (accepted for PR 1, must be accepted again before enablement):** a program can allocate memory until the tab or browser process is killed (measured: ≈2 GB within 5 s in Node; the browser's limit depends on device and cannot be set by a worker). The runner bounds time (5 s) and output only. Mitigations that exist: the bridge terminates the worker after every run and on timeout; heartbeat loss makes the client report `crashed` ("it may have run out of memory"); `terminate()` releases memory (3.3 GB → 0.36 GB measured). What cannot be done: cap or pre-empt allocation inside the page. Impact is limited to the student's own browser (the page may reload and lose unsaved work — PR 2 must persist drafts before Run). Low-memory devices get a warning, not a block (owner decision).

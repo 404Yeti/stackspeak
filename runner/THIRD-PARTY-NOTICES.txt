@@ -17,8 +17,11 @@ CPython (python_stdlib.zip and the interpreter compiled into pyodide.asm.wasm)
   License : Python Software Foundation License Version 2
   Text    : https://docs.python.org/3/license.html
 
-Other components compiled into pyodide.asm.wasm (Emscripten runtime, libffi, zlib, etc.) carry
-their own permissive licenses; see https://github.com/pyodide/pyodide/blob/main/LICENSE and the
-upstream projects.
+Other components compiled into pyodide.asm.wasm carry their own, mostly permissive, licenses. A string
+inspection of the binary identified (NOT an exhaustive list): expat (MIT), mpdecimal (BSD-2-Clause),
+bzip2 (bzip2 license), liblzma/xz (public domain / 0BSD), Secret Labs SRE (CPython's PSF-licensed _sre),
+plus the Emscripten runtime. Their license texts are not reproduced in this file; see
+https://github.com/pyodide/pyodide (LICENSE and the packages' upstream repositories). Whether reproducing
+the texts here is required is an open item for human/legal review (docs/python-runner.md, gate G6).
 
 StackSpeak's own runner code (worker, bridge, harness) is not covered by the licenses above.

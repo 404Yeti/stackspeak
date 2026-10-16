@@ -167,6 +167,45 @@ raise ValueError("the real outcome")
     expect(again.ok.stdout).toBe("still healthy\n");
   });
 
+  test("dynamic code generation is blocked by the CSP (no eval / Function), so student code cannot build JS to hijack the worker", async ({ appPage, prodRunner }) => {
+    // Student code shares the worker's JS realm. Without 'unsafe-eval' it cannot compile new JS from strings, which
+    // is the easy route to patching MessagePort.prototype.postMessage and capturing the worker's private port.
+    const { page } = await appPage(prodRunner.parent);
+    await connect(page, prodRunner.url);
+    const r = await runCode(page, `
+import js
+for name, attempt in {
+    "eval": lambda: js.eval("1 + 1"),
+    "Function": lambda: js.Function("return 1")(),
+    "setTimeout(string)": lambda: js.setTimeout("1", 0),
+}.items():
+    try:
+        print(name, "->", attempt())
+    except BaseException as e:
+        print(name, "BLOCKED", type(e).__name__)
+`);
+    expect(r.error, JSON.stringify(r.error)).toBeUndefined();
+    for (const name of ["eval", "Function"]) expect(r.ok.stdout, r.ok.stdout).toContain(`${name} BLOCKED`);
+    expect(r.ok.stdout).not.toContain("eval -> 2");
+  });
+
+  test("swallowing the worker's own postMessage only times out THEIR run; the next run is clean", async ({ appPage, prodRunner }) => {
+    const { page } = await appPage(prodRunner.parent);
+    await connect(page, prodRunner.url);
+    const r = await runCode(page, `
+import js
+from pyodide.ffi import create_proxy
+js.MessagePort.prototype.postMessage = create_proxy(lambda *a: None)
+print("patched")
+`);
+    expect(r.error, JSON.stringify(r.error)).toBeUndefined();
+    expect(r.ok.status, "the run's reports never arrive, so the bridge's own timeout ends it").toBe("timeout");
+    const again = await runCode(page, "print('clean')");
+    expect(again.error, JSON.stringify(again.error)).toBeUndefined();
+    expect(again.ok.status).toBe("ok");
+    expect(again.ok.stdout).toBe("clean\n");
+  });
+
   test("no student code (or any other data) is sent anywhere: every request is a GET to the runner or the app", async ({ appPage, prodRunner, attacker }) => {
     const { page, log } = await appPage(prodRunner.parent);
     const marker = "UNIQUE_STUDENT_MARKER_7f3a9c";

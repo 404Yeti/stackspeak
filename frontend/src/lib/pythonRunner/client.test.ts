@@ -27,6 +27,30 @@ describe("runner URL validation", () => {
   });
 });
 
+describe("runner must be a different site from the app (fail closed on misconfiguration)", () => {
+  const app = { origin: "https://stackspeak.vercel.app", hostname: "stackspeak.vercel.app" };
+
+  it("refuses the app's own origin or host, with any path-free spelling", () => {
+    expect(() => parseRunnerUrl("https://stackspeak.vercel.app", app)).toThrow(/different site/);
+    expect(() => parseRunnerUrl("https://stackspeak.vercel.app/", app)).toThrow(/different site/);
+    expect(() => parseRunnerUrl("https://stackspeak.vercel.app:8443", app)).toThrow(/different site/);
+    expect(() => parseRunnerUrl("https://STACKSPEAK.vercel.app", app)).toThrow(/different site/);
+  });
+
+  it("accepts a different host, and loopback on a different port or host", () => {
+    expect(parseRunnerUrl("https://stackspeak-runner.vercel.app", app)).toBe("https://stackspeak-runner.vercel.app");
+    const dev = { origin: "http://localhost:3000", hostname: "localhost" };
+    expect(parseRunnerUrl("http://localhost:4010", dev)).toBe("http://localhost:4010");
+    expect(parseRunnerUrl("http://127.0.0.1:4010", dev)).toBe("http://127.0.0.1:4010");
+    expect(() => parseRunnerUrl("http://localhost:3000", dev)).toThrow(/different site/);
+  });
+
+  it("keeps the runner OFF when the configured URL is the app's own origin", () => {
+    const here = globalThis.location.origin;
+    expect(getPythonRunnerConfig({ enabled: "true", url: here })).toEqual({ enabled: false });
+  });
+});
+
 describe("runner iframe", () => {
   it("is created with the least-privileged sandbox and no delegated features", () => {
     const frame = createRunnerFrame(document, "https://runner.example");

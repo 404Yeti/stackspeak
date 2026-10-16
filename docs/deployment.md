@@ -261,3 +261,5 @@ No release blockers remain. For future sprints, not this one:
 - `npm audit` dev-only `braces` advisory — unchanged, documented in `docs/development.md`.
 - Feature branches `aud-50-design-system-app-shell`, `aud-51-challenge-schema`, and `aud-54-homepage-figma-alignment` still exist on GitHub (not auto-deleted — repo's `deleteBranchOnMerge` is off); safe to delete, not done automatically.
 - AUD-52 is fully released (PR A backend + PR B frontend, above). Follow-ups are in `docs/decisions/0002-aud-52-interactive-flow.md` — none are scheduled or approved.
+
+**Rollback / kill switch:** rehearsed 2026-10-16; exact commands and timings are in `docs/python-runner.md` ("Rollback and kill switch"). Short form: pause the runner project (immediate, 503 everywhere, Run fails closed) → `vercel rollback <good-deployment>` → `vercel remove` the bad deployments → re-run `verify-deployment.mjs`.
