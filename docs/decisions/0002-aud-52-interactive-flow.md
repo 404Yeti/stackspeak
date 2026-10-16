@@ -31,6 +31,14 @@ AUD-52 builds the first interactive Daily Challenge. Figma has approved screens 
 
 The workspace top bar (Figma `5:3`) renders on `/daily-challenge` only; `SiteHeader` returns nothing on that route and every other route keeps its existing navigation.
 
+## Addendum (AUD-57): Trace is one focused exercise
+
+Released Trace showed all four public test cases as stacked cards in a narrow side column, which read like a testing dashboard — and its "Case 4" description and "contract" card showed the expected outcome *before* the student predicted anything. AUD-57 changed the Trace UI only (no API/backend change, other public cases still served by `/trace`):
+
+- **One exercise**, the empty-list edge case (`pickTraceFocusIndex` in `traceFocus.ts`: empty-list input → first edge case → first case). Draft state stays keyed by the case's index, so existing drafts remain valid; Continue now requires the focus exercise to be compared.
+- **Stacked, full-width layout:** the student's code above (labeled "Your current code", or "Starter code" if unedited), a prominent prediction card below. Reuses `Card`, `TextArea`, `Button`, `Badge`, `CodeEditor`; Figma has no Trace frame.
+- **Nothing is given away before the reveal:** the case description and the `expected_behavior` contract text appear only after "Reveal expected outcome", framed as "what the challenge expects — not a result from running your code".
+
 ## Known limitations
 
 - JSON can't distinguish `20.0` from `20`, so whole-number floats in expected outcomes display without `.0` (display only).

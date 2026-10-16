@@ -1,5 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import {
+  TRACE_EXERCISE,
   VIEWPORTS,
   completeFlow,
   expectNoHorizontalOverflow,
@@ -131,17 +132,77 @@ test.describe("behavior", () => {
     await toFeedback(page);
   });
 
-  test("trace requires a prediction before revealing the expected outcome", async ({ page }) => {
+  test("trace is ONE focused exercise: prediction first, nothing given away before the reveal", async ({ page }) => {
     await startChallenge(page);
     await toExplain(page);
     await toFix(page);
     await toTrace(page);
-    const first = page.getByRole("group", { name: /^Case 1/ });
-    await expect(first.getByRole("button", { name: "Reveal expected outcome" })).toBeDisabled();
-    await expect(first.getByText(/^Expected:/)).toHaveCount(0);
-    // No fabricated results: no pass/fail wording or terminal anywhere on the stage.
-    await expect(page.getByText(/passed|failed|pytest|\$ /i)).toHaveCount(0);
+
+    // Exactly one exercise — not a list of test cases.
+    const exercise = page.getByRole("region", { name: TRACE_EXERCISE });
+    await expect(exercise).toHaveCount(1);
+    await expect(page.getByRole("button", { name: "Reveal expected outcome" })).toHaveCount(1);
+    await expect(page.getByRole("group", { name: /^Case \d/ })).toHaveCount(0);
+    await expect(exercise.getByText("get_average([])")).toBeVisible();
+
+    // Prediction required before reveal; the outcome isn't on the page until then.
+    await expect(exercise.getByRole("button", { name: "Reveal expected outcome" })).toBeDisabled();
+    await expect(page.getByText(/Expected outcome:/)).toHaveCount(0);
+    expect(await page.evaluate(() => document.body.innerText)).not.toMatch(/ValueError|ZeroDivisionError/);
+    // The next step stays blocked until the student compares.
+    await expect(page.getByRole("button", { name: "Continue to Defend" })).toBeDisabled();
+
+    await exercise.getByLabel(/What does your code do/).fill("it crashes");
+    await exercise.getByRole("button", { name: "Reveal expected outcome" }).click();
+    await expect(exercise.getByText(/Expected outcome:/)).toContainText("raises ValueError");
+    await expect(page.getByText(/not a result from running your code/)).toBeVisible();
+    await expect(page.getByRole("button", { name: "Continue to Defend" })).toBeDisabled();
+    await exercise.getByLabel("It didn't match").check();
+    await expect(page.getByRole("button", { name: "Continue to Defend" })).toBeEnabled();
+
+    // No fabricated results, scores, or AI feedback anywhere on the stage.
     await expect(page.getByText(/did not run your code/)).toBeVisible();
+    await expect(page.getByText(/\bpassed\b|\bfailed\b|pytest|\$ |score|AI (feedback|assessment)/i)).toHaveCount(0);
+  });
+
+  test("trace shows the student's edited code, or labels the starter code when unedited", async ({ page }) => {
+    // Edited in Fix → shown, labeled as their current code.
+    await startChallenge(page);
+    await toExplain(page);
+    await toFix(page);
+    const edited = "def get_average(nums):\n    if not nums:\n        raise ValueError('empty')\n    return sum(nums) / len(nums)";
+    await page.getByLabel(/main\.py — your code/).fill(edited);
+    await toTrace(page);
+    await expect(page.getByRole("heading", { level: 3, name: "Your current code" })).toBeVisible();
+    await expect(page.getByText(/code you edited in Fix/)).toBeVisible();
+    const codeBlock = page.locator("pre code");
+    await expect(codeBlock).toContainText("raise ValueError('empty')");
+    await expect(codeBlock).toContainText("return sum(nums) / len(nums)");
+
+    // Unedited → the starter code, clearly identified as such. A new page has
+    // its own (empty) sessionStorage, so no draft carries over.
+    const fresh = await page.context().newPage();
+    await fresh.setViewportSize({ width: 1440, height: 900 });
+    await startChallenge(fresh);
+    await toExplain(fresh);
+    await toFix(fresh);
+    await toTrace(fresh);
+    await expect(fresh.getByRole("heading", { level: 3, name: "Starter code" })).toBeVisible();
+    await expect(fresh.getByText(/this is the starter code/)).toBeVisible();
+    await expect(fresh.locator("pre code")).toContainText("return total / len(nums)");
+    await expect(fresh.getByRole("heading", { level: 3, name: "Your current code" })).toHaveCount(0);
+  });
+
+  test("the trace prediction draft survives a refresh", async ({ page }) => {
+    await startChallenge(page);
+    await toExplain(page);
+    await toFix(page);
+    await toTrace(page);
+    await page.getByLabel(/What does your code do/).fill("a prediction that survives a reload");
+    await page.waitForTimeout(500);
+    await page.reload();
+    await expect(page.getByRole("heading", { level: 2, name: "Trace it by hand" })).toBeVisible();
+    await expect(page.getByLabel(/What does your code do/)).toHaveValue("a prediction that survives a reload");
   });
 
   test("reaching Defend then going back and forth keeps trace marks", async ({ page }) => {

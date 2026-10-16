@@ -31,7 +31,7 @@ export type FlowState = {
 };
 
 export type FlowAction =
-  | { type: "next"; traceCaseCount: number }
+  | { type: "next"; traceFocusIndex: number | null }
   | { type: "back" }
   | { type: "setExplanation"; value: string }
   | { type: "setDiagnosis"; value: string }
@@ -69,7 +69,7 @@ export function initialState(starterCode: string): FlowState {
 }
 
 /** Why the student can't continue yet, or null when they can. UX guard only — not a security control. */
-export function blockedReason(state: FlowState, traceCaseCount: number): string | null {
+export function blockedReason(state: FlowState, traceFocusIndex: number | null): string | null {
   switch (state.stage) {
     case "explain":
       return isSubstantive(state.explanation)
@@ -79,15 +79,11 @@ export function blockedReason(state: FlowState, traceCaseCount: number): string 
       return isSubstantive(state.diagnosis)
         ? null
         : `Write at least ${MIN_ANSWER_CHARS} characters about where the bug is and why.`;
-    case "trace": {
-      if (traceCaseCount === 0) return "The trace cases haven't loaded yet.";
-      for (let i = 0; i < traceCaseCount; i += 1) {
-        if (state.marks[i] === undefined) {
-          return "Predict each case, reveal the expected outcome, and mark how it compares.";
-        }
-      }
-      return null;
-    }
+    case "trace":
+      if (traceFocusIndex === null) return "The trace exercise hasn't loaded yet.";
+      return state.marks[traceFocusIndex] === undefined
+        ? "Make your prediction, reveal the expected outcome, then say how it compared."
+        : null;
     case "defend":
       return isSubstantive(state.defense)
         ? null
@@ -104,7 +100,7 @@ export function flowReducer(state: FlowState, action: FlowAction): FlowState {
     case "next": {
       const index = STAGE_ORDER.indexOf(state.stage);
       if (index >= STAGE_ORDER.length - 1) return state;
-      if (blockedReason(state, action.traceCaseCount) !== null) return state;
+      if (blockedReason(state, action.traceFocusIndex) !== null) return state;
       return { ...state, stage: STAGE_ORDER[index + 1] };
     }
     case "back": {
