@@ -61,14 +61,15 @@ Visit `http://localhost:3000`. The homepage's "System status" section calls the 
 - **Backend `ModuleNotFoundError` after creating the venv:** re-run `.venv/bin/pip install -e ".[dev]"` — a partial/interrupted install can leave transitive deps (e.g. `uvicorn`) present without the top-level packages (`fastapi`, `pydantic-settings`) they depend on.
 - **`next dev` not picking up source changes on WSL (`/mnt/c/...`):** file-watching is unreliable on the 9p-mounted Windows drive — Next.js itself warns about this ("Slow filesystem detected"). If an edit doesn't show up after a save, don't assume the code is wrong: `rm -rf frontend/.next` and restart `next dev`. Seen concretely during the Sprint 01 review: a layout edit silently didn't recompile until the `.next` Turbopack cache was cleared.
 
-## Browser QA (ad hoc)
+## Browser tests (Playwright smoke suite)
 
-Playwright + Chromium are installed as a `frontend` devDependency (`@playwright/test`) and were used during the Sprint 01 review to verify real rendering at 1440/768/390/320px — nav behavior, overflow, keyboard focus, and backend-health integration — since no project E2E suite exists yet. This is not wired into `npm test` or CI; it's a manual verification tool. To repeat it:
+`frontend/e2e/` holds a small Playwright suite for the Daily Challenge flow (AUD-52): the full journey at 320/390/768/1024/1440px, loading/error/retry states, refresh and blocked-`sessionStorage` behavior, and the public/private boundary (stage content is only requested when its stage is reached; the reference solution never appears in the DOM before Feedback or in the built bundle; nothing the student writes is sent anywhere). It runs against the **real FastAPI backend** and a **production Next.js build**; failures are simulated per-test with `page.route()`.
 
 ```bash
 cd frontend
-npx playwright install chromium   # one-time; first run needs network access
-node your-check-script.mjs        # script must live under frontend/ so `playwright` resolves
+npx playwright install chromium   # one-time
+npm run build
+npm run e2e                       # starts uvicorn (:8000, needs backend/.venv) and `next start` (:3000)
 ```
 
-If a project needs recurring browser QA, formalize this into a real E2E suite (and a project-level `run` skill) as a separate, scoped decision — not something to grow ad hoc.
+It runs in CI as the `e2e` job. It is not part of `npm test` (Vitest excludes `e2e/`). For ad-hoc one-off checks, a script under `frontend/` that imports `playwright` still works.

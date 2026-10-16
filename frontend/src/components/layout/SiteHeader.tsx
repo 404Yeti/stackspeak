@@ -16,6 +16,12 @@ export function SiteHeader() {
     return <MarketingNav />;
   }
 
+  // The Daily Challenge workspace renders its own approved top bar (stage
+  // stepper + Exit) — see features/challenge/WorkspaceTopBar.tsx.
+  if (pathname === "/daily-challenge") {
+    return null;
+  }
+
   return (
     <header className="sticky top-0 z-10 border-b border-border-subtle bg-background/95 backdrop-blur">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">

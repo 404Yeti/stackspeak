@@ -1,6 +1,10 @@
 export type CodeEditorProps = {
   filename: string;
   code: string;
+  /** Right-hand header label. Defaults to "Read-only". */
+  label?: string;
+  /** Drop the 640px cap so the editor fills its column (workspace layouts). */
+  fullWidth?: boolean;
 };
 
 /**
@@ -8,14 +12,14 @@ export type CodeEditorProps = {
  * can actually save or run an edit yet — an "Editing" badge over static text
  * would be a fake control, not a shell.
  */
-export function CodeEditor({ filename, code }: CodeEditorProps) {
+export function CodeEditor({ filename, code, label = "Read-only", fullWidth = false }: CodeEditorProps) {
   const lines = code.split("\n");
 
   return (
-    <div className="w-full max-w-[640px] overflow-hidden rounded-lg border border-border-subtle bg-background">
+    <div className={`w-full ${fullWidth ? "" : "max-w-[640px]"} overflow-hidden rounded-lg border border-border-subtle bg-background`}>
       <div className="flex items-center justify-between bg-surface px-4 py-2 font-mono text-xs font-medium">
         <span className="text-text-primary">{filename}</span>
-        <span className="text-text-muted">Read-only</span>
+        <span className="text-text-muted">{label}</span>
       </div>
       <div className="flex gap-4 overflow-x-auto p-4 font-mono text-sm">
         <div aria-hidden="true" className="select-none text-right text-icon-muted">
