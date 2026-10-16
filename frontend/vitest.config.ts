@@ -1,4 +1,4 @@
-import { defineConfig } from "vitest/config";
+import { configDefaults, defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react";
 import path from "node:path";
 
@@ -8,6 +8,8 @@ export default defineConfig({
     environment: "jsdom",
     setupFiles: ["./src/test/setup.ts"],
     globals: true,
+    // Playwright specs live in e2e/ and run via `npm run e2e`, not Vitest.
+    exclude: [...configDefaults.exclude, "e2e/**"],
     // WSL/9p-mounted filesystems can be too slow to fork test workers in time
     // with the default "forks" pool; threads avoids the fork+exec overhead.
     //

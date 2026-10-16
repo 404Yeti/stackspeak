@@ -87,6 +87,14 @@ Built against the real Figma spec for node `9:487` (see above). All homepage-onl
 - Three new `ComingSoon`-backed stub routes: `/interview-practice`, `/privacy`, `/terms` — same pattern as the pre-existing `/courses` and `/practice-lab`, added so the new nav/footer links go somewhere real instead of a dead link or a non-clickable pseudo-link.
 - `BackendStatus` (the Sprint-01 "System status" widget on the old homepage) — **deleted**. It was a dev diagnostic, never part of any approved design; backend connectivity is verified directly against the API in QA instead of via a homepage widget.
 
+### AUD-52 additions (interactive challenge flow)
+
+- `TextArea` (`components/ui/`) — labeled multi-line input with `aria-describedby` hint; student text is only ever rendered as escaped text.
+- `CodeInput` (`components/ui/`) — the editable counterpart to `CodeEditor` (same chrome, `Editing` badge, plain `<textarea>`, line-number gutter synced on scroll, spellcheck/autocorrect off, Tab not captured). `CodeEditor` itself stays read-only; it gained optional `label` and `fullWidth` props.
+- `StageStepper` — stage labels are now **Read, Explain, Fix, Trace, Defend, Feedback** ("Run" → "Trace" until real execution exists) and the active step carries `aria-current="step"`.
+- `features/challenge/` — `ChallengeWorkspace` (load / error / retry), `WorkspaceTopBar` (approved Figma `5:3` top bar; stepper from `lg`, compact "Step n of 6" + `ProgressBar` below), six stage components, reducer, and `sessionStorage` draft storage. See `docs/decisions/0002-aud-52-interactive-flow.md` for every Figma adaptation.
+- Pip on this route is always a static expression and never implies a real result: Read/Explain `idle`, Fix `coding`, Trace `idea`, Defend/Feedback `explaining`, loading `thinking`, errors `confused`, and `celebrating` only on the "you completed all six stages" note, which makes no correctness claim.
+
 ### Why PNG for Pip but SVG for the logo
 
 Figma's SVG export for Pip returns 15–20 tiny fragment files per expression (eyes, headphones, antenna, etc. as separate vector layers), not one clean file — not something worth hand-reassembling. The single rasterized PNG export per expression is the pragmatic, faithful choice. The logo icon, by contrast, exported as one clean 942-byte SVG, so that's what's used — vector where it's clean, raster where it isn't.

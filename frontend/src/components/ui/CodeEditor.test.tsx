@@ -15,4 +15,10 @@ describe("CodeEditor", () => {
     expect(screen.getByText("2")).toBeInTheDocument();
     expect(screen.getByText("3")).toBeInTheDocument();
   });
+
+  it("accepts a custom label", () => {
+    render(<CodeEditor filename="main.py" code="x" label="Reference implementation" />);
+    expect(screen.getByText("Reference implementation")).toBeInTheDocument();
+    expect(screen.queryByText("Read-only")).not.toBeInTheDocument();
+  });
 });
