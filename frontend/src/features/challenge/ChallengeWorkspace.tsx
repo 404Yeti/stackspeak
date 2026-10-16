@@ -142,6 +142,7 @@ function ChallengeFlow({ challenge, onRestart }: { challenge: ChallengeLoad; onR
       dispatch({ type: "next", traceFocusIndex });
     },
     blockedReason: reason,
+    flushDraft: () => saveDraft(key, state),
   };
 
   return (

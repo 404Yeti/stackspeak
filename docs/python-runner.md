@@ -2,7 +2,7 @@
 
 Real Python execution for the Fix stage, run in the **student's own browser** inside an isolated, separately-hosted runner. This document is the deployment guide, threat model, and release checklist. The decision record is [ADR 0003](./decisions/0003-python-runner.md).
 
-> **Status: infrastructure only (PR 1).** There is no student-facing Run button yet (PR 2), and the feature flag is **OFF in production** until every release gate below passes. Nothing here runs student code on StackSpeak's servers, and no student code is ever sent to FastAPI.
+> **Status: PR 1 (infrastructure) merged; PR 2 (Fix-stage Run Code UI) in review.** The Run button exists but is behind a build-time flag that is **OFF in production** (see "PR 2" below) until every release gate below passes. Nothing here runs student code on StackSpeak's servers, and no student code is ever sent to FastAPI.
 
 ## Architecture
 
@@ -232,3 +232,23 @@ Caveats found while rehearsing: the project's first deployment was assigned `tar
 **B. Blockers for enabling Run Code in production** (flag stays OFF until all are closed): real-device Safari/iOS and Android testing incl. memory and start-up on low-end phones (G2/G3); independent security review (G5); human/legal MPL-2.0 and notices sign-off (G6); rollback owner and drill accepted by the team (G9); PR 2 (UI) and its own review; decision on Vercel project protections (2FA, who may deploy to production); the unresolved memory risk below.
 
 **Unresolved browser-memory risk (accepted for PR 1, must be accepted again before enablement):** a program can allocate memory until the tab or browser process is killed (measured: ≈2 GB within 5 s in Node; the browser's limit depends on device and cannot be set by a worker). The runner bounds time (5 s) and output only. Mitigations that exist: the bridge terminates the worker after every run and on timeout; heartbeat loss makes the client report `crashed` ("it may have run out of memory"); `terminate()` releases memory (3.3 GB → 0.36 GB measured). What cannot be done: cap or pre-empt allocation inside the page. Impact is limited to the student's own browser (the page may reload and lose unsaved work — PR 2 must persist drafts before Run). Low-memory devices get a warning, not a block (owner decision).
+
+
+## PR 2 — Run Code in the Fix stage
+
+Code: `frontend/src/features/challenge/runCode/` (`useCodeRunner`, `RunPanel`, `describeRun`), wired into `FixStage.tsx`; decisions and Figma adaptations in `docs/decisions/0004-run-code-fix-stage.md`.
+
+**Per-environment configuration** (build-time `NEXT_PUBLIC_*`; unset = OFF):
+
+| Environment | `NEXT_PUBLIC_PYTHON_RUNNER_ENABLED` | `NEXT_PUBLIC_PYTHON_RUNNER_URL` |
+|---|---|---|
+| Production (`stackspeak.vercel.app`) | **unset (OFF)** — do not set before the production blockers close | — |
+| Preview deployments of the app | unset. A preview origin is not an approved parent of the runner, so Run could not connect anyway; to test one, add that exact origin to `runner/config/runner.config.json`, regenerate and re-verify the runner | — |
+| Local development | `true` | `http://127.0.0.1:4010` (`cd runner && npm run build && node scripts/serve.mjs --dist dist --parents http://localhost:3000`; the production build only approves the production origin, so local use needs `RUNNER_TEST_PARENTS=http://localhost:3000 npm run build:test` and `--dist dist-test`) |
+| Run Code e2e | set by `npm run build:run` | `http://127.0.0.1:4310` |
+
+The URL must be https (loopback http allowed), a bare origin, and a **different site** from the app — the client refuses a same-origin/same-host runner so a mis-set variable fails closed instead of making `allow-same-origin` meaningless.
+
+**Behaviour:** connects on entering Fix (bridge only), downloads/starts Python on the first Run (status text says the first run can take several seconds), shows stdout/stderr in order, the Python traceback, the plain-language end state (finished, exception, syntax error, 5 s timeout, output limit, stopped, runner crashed) and timing; Stop; Ctrl/⌘+Enter; Reset clears output; the draft is saved just before every run; leaving the stage disposes the runner. When Run is unavailable (unreachable, CSP not enforced, unsupported) the message says so, editing continues, and only recoverable cases offer a reconnect button.
+
+**Tests:** Vitest component tests with a scripted fake runner (`FixStageRun.test.tsx`: flag off, handshake, run order, output/traceback/timing, no-correctness-claims, sequential runs, concurrent-run prevention, each end state, failures, reset, unmount cleanup, keyboard, live regions). Real Python: `frontend/e2e-run/run-code.spec.ts` (Playwright + the real runner test build + a flag-ON app build): output, traceback, stderr, syntax error, timeout then clean next run, output flood, Stop, sequential and double-click runs, keyboard, draft survives reload, Reset, iframe removed on navigation, no student code on the network, runner unreachable, and 320/390/768/1024/1440 px layouts with screenshots. The normal suite adds `run-code-off.spec.ts` (flag OFF default: no button, iframe or runner request). Run: `cd runner && npm ci --omit=dev && RUNNER_TEST_PARENTS=http://localhost:3000 npm run build:test`, then `cd frontend && npm run build:run && npm run e2e:run`. The runner's own security suite is unchanged (`runner/e2e`).

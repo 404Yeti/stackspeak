@@ -9,7 +9,9 @@
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "e2e": "playwright test"
+    "e2e": "playwright test",
+    "build:run": "NEXT_DIST_DIR=.next-run NEXT_PUBLIC_PYTHON_RUNNER_ENABLED=true NEXT_PUBLIC_PYTHON_RUNNER_URL=http://127.0.0.1:4310 next build",
+    "e2e:run": "playwright test -c playwright.run.config.ts"
   },
   "dependencies": {
     "next": "16.4.1",

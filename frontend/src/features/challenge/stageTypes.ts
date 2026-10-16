@@ -12,4 +12,6 @@ export type StageProps = {
   onNext?: () => void;
   /** Why Continue is disabled, or null. */
   blockedReason: string | null;
+  /** Saves the student's draft to sessionStorage immediately (used right before code runs). */
+  flushDraft?: () => void;
 };

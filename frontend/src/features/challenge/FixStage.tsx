@@ -6,29 +6,53 @@ import { CodeInput } from "@/components/ui/CodeInput";
 import { TextArea } from "@/components/ui/TextArea";
 import { MAX_ANSWER_CHARS, MAX_CODE_CHARS } from "./challengeReducer";
 import { BulletList, InfoCard, PipRow, StageHeading, StageNav, StageShell } from "./StageLayout";
+import { RunPanel } from "./runCode/RunPanel";
+import { useCodeRunner } from "./runCode/useCodeRunner";
 import type { StageProps } from "./stageTypes";
 
-export function FixStage({ challenge, state, dispatch, focusHeading, onBack, onNext, blockedReason }: StageProps) {
+export function FixStage({
+  challenge,
+  state,
+  dispatch,
+  focusHeading,
+  onBack,
+  onNext,
+  blockedReason,
+  flushDraft,
+  runnerOptions,
+}: StageProps & { runnerOptions?: Parameters<typeof useCodeRunner>[0] }) {
   const [confirmingReset, setConfirmingReset] = useState(false);
+  // Off unless NEXT_PUBLIC_PYTHON_RUNNER_ENABLED=true and a valid runner URL is set (see docs/python-runner.md).
+  const runner = useCodeRunner(runnerOptions);
+  const canRun = runner.enabled;
+  const runCode = () => {
+    flushDraft?.(); // the draft is already saved if the page crashes or the runner takes the tab down
+    runner.run(state.code);
+  };
 
   return (
     <StageShell
       main={
-        <CodeInput
-          id="fix-code"
-          filename="main.py"
-          value={state.code}
-          maxLength={MAX_CODE_CHARS}
-          onChange={(value) => dispatch({ type: "setCode", value })}
-        />
+        <>
+          <CodeInput
+            id="fix-code"
+            filename="main.py"
+            value={state.code}
+            maxLength={MAX_CODE_CHARS}
+            onChange={(value) => dispatch({ type: "setCode", value })}
+            onSubmitShortcut={canRun ? runCode : undefined}
+          />
+          {canRun && <RunPanel runner={runner} onRun={runCode} />}
+        </>
       }
       side={
         <>
           <InfoCard title="Problem">
             <StageHeading focusOnMount={focusHeading}>Fix the function</StageHeading>
             <p className="text-sm text-text-muted">
-              Work out what&apos;s wrong, then edit the code on the left to fix it. This editor
-              only holds your text — nothing runs it. Use spaces to indent.
+              {canRun
+                ? "Work out what's wrong, then edit the code to fix it. You can run it as often as you like to see what it does — running doesn't check or grade your fix. Use spaces to indent."
+                : "Work out what's wrong, then edit the code on the left to fix it. This editor only holds your text — nothing runs it. Use spaces to indent."}
             </p>
           </InfoCard>
           <InfoCard title="Hints (optional)">
@@ -54,6 +78,7 @@ export function FixStage({ challenge, state, dispatch, focusHeading, onBack, onN
                     variant="secondary"
                     onClick={() => {
                       dispatch({ type: "resetCode", starterCode: challenge.starter_code });
+                      runner.clear();
                       setConfirmingReset(false);
                     }}
                   >
