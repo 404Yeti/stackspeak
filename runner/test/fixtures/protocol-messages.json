@@ -1,0 +1,69 @@
+{
+  "note": "Shared by runner/test/protocol.test.mjs (JS validators) and frontend/src/lib/pythonRunner/protocol.test.ts (TypeScript validators). Both implementations must accept every `valid` and reject every `invalid` entry.",
+  "bridgeToParent": {
+    "valid": [
+      { "t": "hello", "protocol": 1, "nonce": "0123456789abcdef0123456789abcdef", "limits": { "runTimeoutMs": 5000, "initTimeoutMs": 30000, "outputLimitBytes": 65536, "maxCodeChars": 50000 }, "build": { "pyodideVersion": "314.0.7" } },
+      { "t": "hb" },
+      { "t": "status", "id": 1, "phase": "starting", "mode": "build" },
+      { "t": "status", "id": 2, "phase": "running", "mode": "restore" },
+      { "t": "out", "id": 1, "stream": "stdout", "text": "20.0\n" },
+      { "t": "out", "id": 1, "stream": "stderr", "text": "" },
+      { "t": "result", "id": 1, "status": "ok", "durationMs": 3.2, "startupMs": 5100, "mode": "build", "snapshot": "ready", "truncated": false },
+      { "t": "result", "id": 3, "status": "exception", "durationMs": 1, "startupMs": 900, "mode": "restore", "snapshot": "ready", "truncated": false, "traceback": "Traceback (most recent call last):\n  File \"main.py\", line 1\nZeroDivisionError: division by zero\n", "exception": "ZeroDivisionError" },
+      { "t": "result", "id": 4, "status": "timeout", "durationMs": 0, "startupMs": 880, "mode": "restore", "snapshot": "ready", "truncated": false },
+      { "t": "fatal", "reason": "csp-not-enforced", "message": "not enforced" },
+      { "t": "fatal", "id": 7, "reason": "init-timeout", "message": "slow" }
+    ],
+    "invalid": [
+      null,
+      "hello",
+      [],
+      {},
+      { "t": "unknown" },
+      { "t": "hello", "protocol": 2, "nonce": "x", "limits": {}, "build": {} },
+      { "t": "hello", "protocol": 1, "nonce": "0123456789abcdef0123456789abcdef", "limits": { "runTimeoutMs": -1, "initTimeoutMs": 30000, "outputLimitBytes": 65536, "maxCodeChars": 50000 }, "build": { "pyodideVersion": "314.0.7" } },
+      { "t": "hb", "extra": 1 },
+      { "t": "status", "id": 0, "phase": "starting", "mode": "build" },
+      { "t": "status", "id": 1, "phase": "weird", "mode": "build" },
+      { "t": "out", "id": 1, "stream": "stdin", "text": "x" },
+      { "t": "out", "id": 1, "stream": "stdout", "text": 5 },
+      { "t": "out", "id": 1.5, "stream": "stdout", "text": "x" },
+      { "t": "result", "id": 1, "status": "passed", "durationMs": 1, "startupMs": 1, "mode": "build", "snapshot": "ready", "truncated": false },
+      { "t": "result", "id": 1, "status": "ok", "durationMs": "1", "startupMs": 1, "mode": "build", "snapshot": "ready", "truncated": false },
+      { "t": "result", "id": 1, "status": "ok", "durationMs": 1, "startupMs": 1, "mode": "build", "snapshot": "ready" },
+      { "t": "result", "id": 1, "status": "ok", "durationMs": 1e12, "startupMs": 1, "mode": "build", "snapshot": "ready", "truncated": false },
+      { "t": "fatal", "reason": "because", "message": "x" },
+      { "t": "fatal", "reason": "init-failed", "message": 3 }
+    ]
+  },
+  "parentToBridge": {
+    "valid": [
+      { "t": "run", "id": 1, "code": "print(1)" },
+      { "t": "run", "id": 2147483647, "code": "" },
+      { "t": "stop", "id": 4 },
+      { "t": "dispose" }
+    ],
+    "invalid": [
+      null,
+      { "t": "run", "id": 1 },
+      { "t": "run", "id": 1, "code": 5 },
+      { "t": "run", "id": 0, "code": "x" },
+      { "t": "run", "id": 1, "code": "x", "extra": true },
+      { "t": "stop" },
+      { "t": "dispose", "x": 1 },
+      { "t": "eval", "code": "1" }
+    ]
+  },
+  "init": {
+    "valid": [
+      { "type": "stackspeak-runner/init", "protocol": 1, "nonce": "0123456789abcdef0123456789abcdef" }
+    ],
+    "invalid": [
+      null,
+      { "type": "stackspeak-runner/init", "protocol": 1, "nonce": "short" },
+      { "type": "stackspeak-runner/init", "protocol": 2, "nonce": "0123456789abcdef0123456789abcdef" },
+      { "type": "other", "protocol": 1, "nonce": "0123456789abcdef0123456789abcdef" },
+      { "type": "stackspeak-runner/init", "protocol": 1, "nonce": "0123456789ABCDEF0123456789abcdef" }
+    ]
+  }
+}

@@ -237,6 +237,23 @@ PR [#6](https://github.com/404Yeti/stackspeak/pull/6), reviewed head `6e4b49f`, 
 
 **Known limitations:** unchanged from AUD-52, plus — Trace has no per-case navigation by design (the other three public cases are served by the API but not shown); the pre-existing draft marks for other cases are ignored (only the focus exercise gates Continue); the exercise keeps the challenge's generic `trace_prompts` wording ("…for each input"), which is backend content and was deliberately not changed.
 
+## Python runner hosting (AUD-60)
+
+A **separate** static Vercel project, `stackspeak-runner`, on a different site from the app (see [`python-runner.md`](./python-runner.md) for the full guide, exact headers, and release gates). It does not touch the StackSpeak app project, the FastAPI service, or any existing environment variable.
+
+| Item | Value |
+|---|---|
+| Vercel project | `stackspeak-runner` (new; **not part of StackSpeak production**) |
+| Root Directory / Framework | `runner` / Other |
+| Install / Build / Output | `npm ci --omit=dev` / `npm run build` / `dist` |
+| Ignored Build Step | `git diff HEAD^ HEAD --quiet -- .` (only builds when `runner/` changes) |
+| Vercel Authentication | off (public runtime files only) |
+| Environment variables | none |
+| App-side switches | `NEXT_PUBLIC_PYTHON_RUNNER_ENABLED` (unset ⇒ off) and `NEXT_PUBLIC_PYTHON_RUNNER_URL`; **not set in production** |
+| Hosting cost / impact | static files only (~13.4 MB raw, ~6.4 MB over the wire on first Run); no functions, no database, no change to Render |
+
+**Status (2026-10-16): project created, preview verified; gate G1 partially closed.** Project `stackspeak-runner` (`prj_JKO6cuDwJL37lILVUJxiC9Tpzf5I`, team `robert-leybas-projects`, Hobby plan, root `runner`, `npm ci --omit=dev` / `npm run build` / `dist`, no framework, Vercel Auth disabled so headers can be fetched) was created with the Vercel CLI (the connector still returns 403). It is **not** git-connected, so only manual `vercel deploy` creates deployments. Note: the project's very first deployment (`dpl_75nkwU7KRUHLcr3ZRNmWMeSy1moq`, `stackspeak-runner-j1jmgcb6x-…`) was assigned `target: production` by Vercel because the project had no production deployment yet (alias `stackspeak-runner.vercel.app`); it serves the same content and the student feature is OFF, and the StackSpeak app project was not touched. Verified preview: `https://stackspeak-runner-d7oorm05p-robert-leybas-projects.vercel.app` (commit `24f8c50`): `node scripts/verify-deployment.mjs <url>` = **70 passed, 0 failed**; deployed worker response header: `content-security-policy: default-src 'none'; script-src 'self' 'wasm-unsafe-eval'; connect-src 'self'; worker-src 'none'; base-uri 'none'; form-action 'none'` (bridge document: `default-src 'none'; script-src 'self'; worker-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors https://stackspeak.vercel.app`). Vercel adds `access-control-allow-origin: *` to static files (platform default; the runner serves only public files, and embedding is governed by `frame-ancestors`). Deployable e2e subset (`RUNNER_BASE_URL=<url> npm run e2e`): Chromium 21 passed / 7 skipped, Firefox 21 passed / 7 skipped (the skipped tests need the test build's hooks or hardening-off build and can never run against production). Still open: Safari/WebKit and mobile devices against the deployed URL, rollback rehearsal.
+
 ## Outstanding
 
 No release blockers remain. For future sprints, not this one:
@@ -244,3 +261,5 @@ No release blockers remain. For future sprints, not this one:
 - `npm audit` dev-only `braces` advisory — unchanged, documented in `docs/development.md`.
 - Feature branches `aud-50-design-system-app-shell`, `aud-51-challenge-schema`, and `aud-54-homepage-figma-alignment` still exist on GitHub (not auto-deleted — repo's `deleteBranchOnMerge` is off); safe to delete, not done automatically.
 - AUD-52 is fully released (PR A backend + PR B frontend, above). Follow-ups are in `docs/decisions/0002-aud-52-interactive-flow.md` — none are scheduled or approved.
+
+**Rollback / kill switch:** rehearsed 2026-10-16; exact commands and timings are in `docs/python-runner.md` ("Rollback and kill switch"). Short form: pause the runner project (immediate, 503 everywhere, Run fails closed) → `vercel rollback <good-deployment>` → `vercel remove` the bad deployments → re-run `verify-deployment.mjs`.

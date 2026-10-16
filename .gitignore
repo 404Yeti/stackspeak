@@ -26,3 +26,10 @@ backend/*.egg-info/
 # Coverage / logs
 coverage/
 *.log
+
+# runner (static Python runner project)
+/runner/node_modules/
+/runner/dist/
+/runner/dist-test/
+/runner/test-results/
+/runner/playwright-report/
