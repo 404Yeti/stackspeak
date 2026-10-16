@@ -139,7 +139,7 @@ export async function openApp(browser, parentOrigin, appApiUrl) {
   if (appApiUrl) await context.addCookies([{ name: "session", value: "SECRET", url: appApiUrl, httpOnly: true, sameSite: "Lax" }]);
   const page = await context.newPage();
   // Diagnostics for CI (shows up in the job log): errors and failed requests from the host page and its frames.
-  page.on("console", (m) => { if (m.type() === "error") console.log(`PAGE-CONSOLE-ERROR ${m.text().slice(0, 300)}`); });
+  page.on("console", (m) => { if (m.type() === "error" || m.type() === "warning") console.log(`PAGE-CONSOLE-ERROR ${m.text().slice(0, 300)}`); });
   page.on("pageerror", (e) => console.log(`PAGE-ERROR ${String(e).slice(0, 300)}`));
   page.on("requestfailed", (r) => console.log(`REQUEST-FAILED ${r.url().slice(0, 150)} ${r.failure()?.errorText}`));
   await page.goto(`${parentOrigin}/__runner-host`);
@@ -173,7 +173,13 @@ export async function runCode(page, code) {
 }
 
 export async function waitReady(page) {
-  return reportError("ready", await page.evaluate(async () => {
+  const result = await waitReadyRaw(page);
+  if (result.error) console.log(`FRAMES ${JSON.stringify(page.frames().map((f) => f.url()))} UA=${await page.evaluate(() => navigator.userAgent)}`);
+  return reportError("ready", result);
+}
+
+async function waitReadyRaw(page) {
+  return (await page.evaluate(async () => {
     try { return { ok: await window.__session.ready }; } catch (e) { return { error: { kind: e.kind, reason: e.reason, message: String(e.message) } }; }
   }));
 }
