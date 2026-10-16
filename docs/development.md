@@ -93,3 +93,8 @@ node scripts/verify-deployment.mjs https://<runner-origin>    # asserts the DEPL
 - The runner e2e needs the three Playwright browsers (`npx playwright install chromium firefox webkit`). WebKit on Linux needs system libraries (`sudo npx playwright install-deps webkit`), which CI installs; do not install system packages locally without deciding to.
 - Chromium's Local Network Access check is disabled for the e2e browser only (a faked public app origin cannot embed a loopback runner, and it would also hide attacker-server leaks) — production never has that topology.
 - **Vitest on `/mnt/c` (WSL):** the worker-boot timeout described above also hits the new `frontend/src/lib/pythonRunner/*.test.ts`. They pass in ~3 s from a copy on the native Linux filesystem and always run natively in CI.
+
+
+## Run Code in the Fix stage (AUD-60 PR 2)
+
+Off unless `NEXT_PUBLIC_PYTHON_RUNNER_ENABLED=true` and `NEXT_PUBLIC_PYTHON_RUNNER_URL` is a valid, different-site runner origin (build-time). Real-Python browser tests: build the runner's test tree for the app origin (`cd runner && RUNNER_TEST_PARENTS=http://localhost:3000 npm run build:test`), then `cd frontend && npm run build:run && npm run e2e:run` (uses `.next-run/`, runner on port 4310, backend on 8000, app on 3000 — stop any other `next start` on 3000 first). Details: `docs/python-runner.md` → "PR 2".

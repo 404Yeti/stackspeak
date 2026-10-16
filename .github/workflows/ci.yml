@@ -61,11 +61,21 @@ jobs:
         working-directory: frontend
       - run: npm run e2e
         working-directory: frontend
+      # Run Code e2e: real Python in the real runner (test build approving the e2e app origin) behind a flag-ON build.
+      - run: npm ci --omit=dev && RUNNER_TEST_PARENTS=http://localhost:3000 npm run build:test
+        working-directory: runner
+      - run: npm run build:run
+        working-directory: frontend
+      - run: npm run e2e:run
+        working-directory: frontend
       - uses: actions/upload-artifact@v4
-        if: failure()
+        if: always()
         with:
           name: playwright-report
-          path: frontend/playwright-report
+          path: |
+            frontend/playwright-report
+            frontend/playwright-report-run
+            frontend/test-results-run/screens
           retention-days: 7
 
   runner:

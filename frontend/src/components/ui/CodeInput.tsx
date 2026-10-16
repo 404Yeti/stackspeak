@@ -8,6 +8,8 @@ export type CodeInputProps = {
   value: string;
   onChange: (value: string) => void;
   maxLength?: number;
+  /** Ctrl/⌘+Enter inside the editor (the only shortcut; Tab is never captured). */
+  onSubmitShortcut?: () => void;
 };
 
 /**
@@ -16,7 +18,7 @@ export type CodeInputProps = {
  * student edits. Tab is NOT captured (that would trap keyboard focus), so
  * indentation is typed as spaces.
  */
-export function CodeInput({ id, filename, value, onChange, maxLength }: CodeInputProps) {
+export function CodeInput({ id, filename, value, onChange, maxLength, onSubmitShortcut }: CodeInputProps) {
   const gutterRef = useRef<HTMLDivElement>(null);
   const lineCount = value.split("\n").length;
 
@@ -49,6 +51,12 @@ export function CodeInput({ id, filename, value, onChange, maxLength }: CodeInpu
           autoCorrect="off"
           wrap="off"
           onChange={(event) => onChange(event.target.value)}
+          onKeyDown={(event) => {
+            if (onSubmitShortcut && event.key === "Enter" && (event.ctrlKey || event.metaKey)) {
+              event.preventDefault();
+              onSubmitShortcut();
+            }
+          }}
           onScroll={(event) => {
             if (gutterRef.current) gutterRef.current.scrollTop = event.currentTarget.scrollTop;
           }}
