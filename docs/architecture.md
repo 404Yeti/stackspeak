@@ -50,4 +50,6 @@ Avoid building speculative abstractions for any of these before a sprint actuall
 
 Until a sandboxed execution service (e.g. a container-per-run model with resource/network limits, reviewed separately) is implemented, any route that would execute student code stays disabled or returns a clear "not yet available" response — never a simulated/fake result. The Daily Challenge placeholder in Sprint 01 does not execute anything.
 
+**Stage gating is UX-only.** The challenge API splits content by learning stage (`docs/challenge-schema.md`) so the interface doesn't spoil exercises, but with no auth and no server-side attempt state it is not an access-control or anti-cheating boundary — any stage endpoint can be called directly. Only genuinely private data (`instructor_notes`, `evaluation_guidance`, hidden tests) is protected, by never being part of any response model.
+
 Secrets (API keys, database credentials, provider tokens) live only in backend environment variables, never in a `NEXT_PUBLIC_*` var, never committed, never returned in an API response body.

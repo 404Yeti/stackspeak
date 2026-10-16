@@ -7,28 +7,43 @@ AUD-51 introduces a typed, validated schema for challenges and one seeded beginn
 `backend/app/models/challenge.py` defines two layers deliberately:
 
 - **`Challenge`** — the full internal record. Includes `corrected_solution`, `instructor_notes`, `evaluation_guidance`, and any `TestCase` marked `hidden`.
-- **`ChallengePublic`** / **`ChallengeSummary`** — what the API actually returns. These models have **no fields** for the private data above — not "all fields minus a deny-list," but an explicit allow-list. A new private field added to `Challenge` later cannot leak through the public response by accident, because the public model simply has nowhere to put it.
+- **Stage-aware public models** — what the API actually returns, one model per learning stage (see [Stage-aware API](#stage-aware-api-aud-52)). Each is an explicit allow-list: a new private field added to `Challenge` later cannot leak by accident, because no public model has anywhere to put it.
 
-`Challenge.to_public()` / `.to_summary()` build the public models field-by-field from the internal one, filtering out any `TestCase` where `hidden=True` in the process.
+`Challenge.to_summary()` / `.to_public()` / `.to_trace()` / `.to_defend()` / `.to_review()` build each public model field-by-field from the internal one; `to_trace()` filters out any `TestCase` where `hidden=True`.
 
-This is enforced by tests (`backend/tests/test_challenges_api.py`), not just by convention: `test_get_challenge_never_leaks_private_fields` parses the actual JSON response and asserts none of `corrected_solution` / `instructor_notes` / `evaluation_guidance` / `hidden` appear anywhere in it, at the top level or inside any test case.
+This is enforced by tests (`backend/tests/test_challenges_api.py`): exact key sets per endpoint, no instructor-only keys or text in any response, and spoiler strings absent from the initial load.
+
+## Stage-aware API (AUD-52)
+
+AUD-51 shipped a single `ChallengePublic` payload that included `bug_description`, `expected_behavior`, test cases, and prompts naming the bug — correct for privacy (no *private* fields) but a spoiler for a "find the bug" flow. AUD-52 split it by learning stage:
+
+| Endpoint | Stage(s) | Fields |
+|---|---|---|
+| `GET /api/challenges` | — | `ChallengeSummary` (unchanged) |
+| `GET /api/challenges/{id}` | Read / Explain / Fix | `id, version, title, language, difficulty, topic, learning_objectives, starter_code, explain_prompts, fix_prompts` |
+| `GET /api/challenges/{id}/trace` | Trace | `id, version, expected_behavior, test_cases` (hidden excluded), `trace_prompts` |
+| `GET /api/challenges/{id}/defend` | Defend | `id, version, defend_prompts` |
+| `GET /api/challenges/{id}/review` | Feedback | `id, version, bug_description, corrected_solution, technical_checklist, communication_checklist, alternatives_note` |
+
+All endpoints return `404` for an unknown id; the stage endpoints send `Cache-Control: no-store`.
+
+**Breaking change to `GET /api/challenges/{id}`.** `expected_behavior`, `bug_description`, `test_cases`, `explanation_prompts`, and `defend_prompts` were removed from it. No code in this repository consumed that response (the frontend never called it), so nothing in-repo breaks; any external consumer of the v0.1 public preview would. The seed challenge's `version` was bumped `1 → 2` to mark the content shape change. Deploy the backend before the frontend flow that depends on the new endpoints.
+
+**Stage gating is UX-only, not a security or anti-cheating boundary.** With no authentication and no server-side attempt state, the server cannot know which stage a student has reached, so every stage endpoint — including `/review`, which contains the reference solution — can be requested directly. The separation exists so the *interface* doesn't spoil the exercise by default, and so private data (`instructor_notes`, `evaluation_guidance`, hidden tests) never leaves the backend. Real gating would need identity and persisted attempts (deferred; see below).
 
 ## Fields
 
-| Field | On | Purpose |
+| Field | Exposed via | Purpose |
 |---|---|---|
-| `id`, `version`, `title` | both | stable slug, content version, display name |
-| `language` | both | validated against `SUPPORTED_LANGUAGES` (currently `{"python"}`) — see below |
-| `difficulty` | both | `beginner \| intermediate \| advanced` |
-| `topic`, `learning_objectives` | both | what the challenge teaches |
-| `starter_code` | both | the buggy code shown to the student |
-| `expected_behavior` | both | plain-language contract the correct code must satisfy |
-| `bug_description` | both | what's wrong, for the Explain/Fix stages |
-| `test_cases` | both (filtered) | see below |
-| `explanation_prompts`, `defend_prompts` | both | guide the Explain and Defend stages |
-| `corrected_solution` | **internal only** | reference fix |
-| `instructor_notes` | **internal only** | guidance for evaluators, including discussion of defensible alternative designs |
-| `evaluation_guidance` | **internal only** | `technical_criteria` and `communication_criteria`, kept as two separate lists — see below |
+| `id`, `version`, `title`, `language`, `difficulty`, `topic` | load (`id`/`version` on every stage model) | stable slug, content version, display name; `language` validated against `SUPPORTED_LANGUAGES` (currently `{"python"}`) |
+| `learning_objectives`, `starter_code` | load | what the challenge teaches; the buggy code shown to the student |
+| `explain_prompts`, `fix_prompts` | load | neutral prompts for the Explain / Fix stages — must not name the bug |
+| `expected_behavior`, `test_cases` (hidden filtered), `trace_prompts` | `/trace` | the contract and public cases a student reasons through by hand |
+| `defend_prompts` | `/defend` | guide the Defend stage |
+| `bug_description`, `corrected_solution` | `/review` | the diagnosis and one reference implementation (not the only valid answer) |
+| `technical_checklist`, `communication_checklist`, `alternatives_note` | `/review` | student-facing self-review items, kept as two separate lists; discussion of defensible alternatives |
+| `instructor_notes` | **internal only** | guidance for evaluators |
+| `evaluation_guidance` | **internal only** | instructor rubric: `technical_criteria` and `communication_criteria`, kept separate |
 
 ### `TestCase`
 
@@ -54,14 +69,12 @@ One of the five test cases (`input=[42]`) is marked `hidden` specifically so the
 
 ## API
 
-Read-only, no auth, no persistence:
-
-- `GET /api/challenges` → `list[ChallengeSummary]`
-- `GET /api/challenges/{challenge_id}` → `ChallengePublic`, or `404` if the id is unknown
+Read-only, no auth, no persistence — see [Stage-aware API](#stage-aware-api-aud-52) above for the endpoint table.
 
 ## Deliberately deferred (not in AUD-51)
 
 - **Stage persistence** (tracking which stage — Read/Explain/Fix/Run/Defend/Feedback — a student is on) was in the original issue's acceptance criteria but is explicitly out of scope for this pass, since it would require auth and a database, neither of which AUD-51 introduces. Tracked as follow-up work, not silently dropped.
 - Code execution against `test_cases` (needs the sandboxed-execution work described in `docs/architecture.md`'s security boundary).
-- Wiring the frontend `/daily-challenge` page to fetch this real data instead of its current static AUD-50 preview — a natural next step, not bundled into this schema/seed/API change.
+- Wiring the frontend `/daily-challenge` page to this API — AUD-52 PR B.
+- Real stage gating (needs identity + server-side attempt state).
 - Course/lesson grouping above individual challenges.
