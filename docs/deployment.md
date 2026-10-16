@@ -159,10 +159,51 @@ PR [#4](https://github.com/404Yeti/stackspeak/pull/4), reviewed head `542df98`, 
 
 **Compatibility note:** this release removed five fields from `GET /api/challenges/{id}` (breaking for any external consumer; none exist in this repo).
 
+## AUD-52 PR B release (interactive Daily Challenge flow)
+
+PR [#5](https://github.com/404Yeti/stackspeak/pull/5), reviewed head `90167b1`, merge commit `22d09ed` (2026-10-16). Together with PR A (above) this completes AUD-52: the Daily Challenge is a working **READ → EXPLAIN → FIX → TRACE → DEFEND → FEEDBACK** flow on the real `average-of-list` challenge. Text input only; no code execution, voice, AI scoring, auth, or database.
+
+**Pre-merge:** head `90167b1` verified; checks `frontend`, `backend`, `e2e` (Playwright, real backend + production build), `Vercel`, `Vercel Preview Comments` all green; mergeable/clean; 41 approved files (frontend feature code and tests, the Playwright suite + CI job, docs, ADR 0002); **zero backend files and zero dependency changes** (only an `e2e` npm script); a scan of the added code found no `eval`/`exec`/subprocess, Pyodide, database/ORM, auth library, `MediaRecorder`/`getUserMedia`, or AI-provider usage. Merged with a merge commit.
+
+**Deployment evidence:**
+
+| Check | Result |
+|---|---|
+| Vercel production deployment of the exact merge commit | ✅ GitHub deployment `7108290231`, environment `Production`, sha `22d09ed`, state `success` ("Deployment has completed"), `https://stackspeak-okito3nma-robert-leybas-projects.vercel.app` |
+| Live site serves the new build | ✅ `/daily-challenge` HTML contains the new loading state (no "Coming soon"/"Noninteractive preview") |
+| Render backend | ✅ `/api/health` commit `97d31615269880988c0934554ab5998b2b010361` — still the PR A revision; PR B changed no backend code |
+| Frontend → production challenge API | ✅ browser-origin request from `https://stackspeak.vercel.app` returns 200 with `access-control-allow-origin: https://stackspeak.vercel.app`; the flow's own requests to `stack-speak.onrender.com` succeed (below) |
+
+**Production acceptance** — Playwright (headless Chromium) against `https://stackspeak.vercel.app` + `https://stack-speak.onrender.com`, **12/12 passed**:
+
+| Check | Result |
+|---|---|
+| Full journey Read → Explain → Fix → Trace → Defend → Feedback, then Start over | ✅ at each of **320, 390, 768, 1024, 1440px** |
+| Progress indicator | ✅ full stepper at ≥1024px, compact "Step n of 6 · Stage" below; global nav absent on this route |
+| Trace requires a prediction first | ✅ Reveal disabled until a prediction is typed; no `Expected:` text before reveal |
+| No fabricated execution or AI results | ✅ "StackSpeak did not run your code" shown; no pass/fail/pytest/terminal/score/AI text anywhere on Trace; Feedback says "has not evaluated your answers" |
+| Drafts survive refresh | ✅ Fix-stage diagnosis restored after reload |
+| Restart | ✅ requires the "Yes, start over" confirmation; answers cleared and still empty after a reload |
+| Blocked `sessionStorage` | ✅ full flow completes, no errors |
+| Error states + retry | ✅ aborted challenge load → alert → "Try again" recovers; failed `/review` → alert "Your answers so far are safe" → "Try again" recovers with answers intact |
+| Keyboard + focus | ✅ Enter/Tab/Space-only path through Explain → Fix → Trace; focus lands on each new stage heading; `aria-current="step"` on the current stage |
+| No horizontal overflow | ✅ every stage, all 5 widths |
+| No console/page/request errors | ✅ zero across all journeys and the 8-route health check |
+| No student content transmitted | ✅ every request in every journey was a GET to `stackspeak.vercel.app` or `stack-speak.onrender.com`; no request URL/body contained any typed answer |
+| Stage content requested only when reached | ✅ after Read: exactly `GET /api/challenges` + `GET /api/challenges/average-of-list`; no `/trace` before Fix is done, no `/defend` before Trace, no `/review` until Feedback |
+| Reference solution not in the production bundle | ✅ every `_next/static` JS/CSS asset the whole flow loads was fetched and searched — no solution text, no `instructor_notes` |
+| Initial API response spoiler-free | ✅ no `bug_description`, `expected_behavior`, `test_cases`, `corrected_solution`, prompts that name the bug, `ZeroDivisionError`/`ValueError`, or the solution text |
+| Public responses | ✅ none of the 4 endpoints contain `instructor_notes`, `evaluation_guidance`, `hidden`, the hidden `[42]` case, or instructor text; the solution appears only in `/review`; `Cache-Control: no-store` on stage endpoints; 404 for unknown ids on all four paths |
+| Homepage + existing routes | ✅ `/`, `/daily-challenge`, `/courses`, `/practice-lab`, `/interview-practice`, `/privacy`, `/terms`, `/progress` all 200, no overflow, no console errors; homepage tagline present; existing nav intact on `/courses` |
+
+(The acceptance spec was a one-off run, not committed; the committed CI suite is `frontend/e2e/`.)
+
+**Known limitations:** see `docs/decisions/0002-aud-52-interactive-flow.md` — "13 Mobile challenge" Figma node unlocated (responsive layout uses the desktop patterns); whole-number floats display without `.0`; Tab is not captured in the code field (indent with spaces); browser Back leaves the workspace (stage isn't in the URL); Vercel *preview* deployments can't load the challenge (CORS allows only production + localhost); "daily" = the first challenge the API lists; stage gating is UX-only, not a security boundary; the removed fields in `GET /api/challenges/{id}` (PR A) remain a breaking change for any external consumer.
+
 ## Outstanding
 
 No release blockers remain. For future sprints, not this one:
 - No persistence, auth, or code-execution sandbox — unchanged from Sprint 01, intentional. Challenge attempts/progression and stage persistence are explicitly deferred (see `docs/challenge-schema.md`). Homepage `Log in`/`Sign up` are intentionally disabled until auth is scoped.
 - `npm audit` dev-only `braces` advisory — unchanged, documented in `docs/development.md`.
 - Feature branches `aud-50-design-system-app-shell`, `aud-51-challenge-schema`, and `aud-54-homepage-figma-alignment` still exist on GitHub (not auto-deleted — repo's `deleteBranchOnMerge` is off); safe to delete, not done automatically.
-- AUD-52: PR A (backend) released (above); PR B (frontend flow) in progress, unreleased.
+- AUD-52 is fully released (PR A backend + PR B frontend, above). Follow-ups are in `docs/decisions/0002-aud-52-interactive-flow.md` — none are scheduled or approved.
