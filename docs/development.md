@@ -73,3 +73,23 @@ npm run e2e                       # starts uvicorn (:8000, needs backend/.venv) 
 ```
 
 It runs in CI as the `e2e` job. It is not part of `npm test` (Vitest excludes `e2e/`). For ad-hoc one-off checks, a script under `frontend/` that imports `playwright` still works.
+
+
+## Python runner (`runner/`, AUD-60)
+
+A separate static project (its own `package.json`, its own Vercel project). See [`python-runner.md`](./python-runner.md).
+
+```bash
+cd runner
+npm ci
+npm run check:config      # committed vercel.json must equal what the generator produces
+npm run build             # dist/       (production tree: hardening on, approved origins from config)
+npm run build:test        # dist-test/  (tests only: hardening off, test hooks on; never deployed)
+npm test                  # node:test — real CPython in Node (harness), headers/origins, protocol fixtures, build integrity
+npm run e2e               # Playwright security + lifecycle suite in chromium, firefox, webkit
+node scripts/verify-deployment.mjs https://<runner-origin>    # asserts the DEPLOYED headers and file hashes
+```
+
+- The runner e2e needs the three Playwright browsers (`npx playwright install chromium firefox webkit`). WebKit on Linux needs system libraries (`sudo npx playwright install-deps webkit`), which CI installs; do not install system packages locally without deciding to.
+- Chromium's Local Network Access check is disabled for the e2e browser only (a faked public app origin cannot embed a loopback runner, and it would also hide attacker-server leaks) — production never has that topology.
+- **Vitest on `/mnt/c` (WSL):** the worker-boot timeout described above also hits the new `frontend/src/lib/pythonRunner/*.test.ts`. They pass in ~3 s from a copy on the native Linux filesystem and always run natively in CI.

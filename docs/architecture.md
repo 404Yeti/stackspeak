@@ -39,7 +39,7 @@ These are architectural placeholders — do not implement the full systems witho
 - **Text-to-speech** — same provider-abstraction pattern, for Pip's spoken responses.
 - **Technical vs. spoken-English scoring** — two independent assessment pipelines reported separately, never averaged into one number.
 - **AI-generated feedback** — must be grounded in the student's actual submitted code/speech, never templated or fabricated.
-- **Isolated code execution** — see below.
+- **Isolated code execution** — see below; browser-side runner infrastructure exists (AUD-60), a server-side sandbox does not.
 - **Instructor tools** — assignments, class-level progress views.
 
 Avoid building speculative abstractions for any of these before a sprint actually requires them.
@@ -49,6 +49,8 @@ Avoid building speculative abstractions for any of these before a sprint actuall
 **Untrusted student code must never execute on the application server.** The backend process that serves `/api/*` must never `exec`, `eval`, or otherwise run code a student submitted.
 
 Until a sandboxed execution service (e.g. a container-per-run model with resource/network limits, reviewed separately) is implemented, any route that would execute student code stays disabled or returns a clear "not yet available" response — never a simulated/fake result. The Daily Challenge placeholder in Sprint 01 does not execute anything.
+
+**Browser-side execution (AUD-60, infrastructure only — not enabled).** The rule above is about the *application server* and is unchanged: StackSpeak's servers never run, and never receive, student code. AUD-60 adds a separately-reviewed way to run Python **in the student's own browser**, in a hardened worker hosted on a *different site* (`runner/`, deployed as its own Vercel project): see [`docs/python-runner.md`](./python-runner.md) and [ADR 0003](./decisions/0003-python-runner.md). It is feature-flagged **off** in production until its release gates pass, and a Web Worker is never treated as a sandbox by itself — the boundary is the cross-site origin plus a worker-specific CSP that the worker proves is enforced before it runs anything.
 
 **Stage gating is UX-only.** The challenge API splits content by learning stage (`docs/challenge-schema.md`) so the interface doesn't spoil exercises, but with no auth and no server-side attempt state it is not an access-control or anti-cheating boundary — any stage endpoint can be called directly. Only genuinely private data (`instructor_notes`, `evaluation_guidance`, hidden tests) is protected, by never being part of any response model.
 

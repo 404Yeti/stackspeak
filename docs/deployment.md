@@ -237,6 +237,23 @@ PR [#6](https://github.com/404Yeti/stackspeak/pull/6), reviewed head `6e4b49f`, 
 
 **Known limitations:** unchanged from AUD-52, plus — Trace has no per-case navigation by design (the other three public cases are served by the API but not shown); the pre-existing draft marks for other cases are ignored (only the focus exercise gates Continue); the exercise keeps the challenge's generic `trace_prompts` wording ("…for each input"), which is backend content and was deliberately not changed.
 
+## Python runner hosting (AUD-60)
+
+A **separate** static Vercel project, `stackspeak-runner`, on a different site from the app (see [`python-runner.md`](./python-runner.md) for the full guide, exact headers, and release gates). It does not touch the StackSpeak app project, the FastAPI service, or any existing environment variable.
+
+| Item | Value |
+|---|---|
+| Vercel project | `stackspeak-runner` (new; **not part of StackSpeak production**) |
+| Root Directory / Framework | `runner` / Other |
+| Install / Build / Output | `npm ci --omit=dev` / `npm run build` / `dist` |
+| Ignored Build Step | `git diff HEAD^ HEAD --quiet -- .` (only builds when `runner/` changes) |
+| Vercel Authentication | off (public runtime files only) |
+| Environment variables | none |
+| App-side switches | `NEXT_PUBLIC_PYTHON_RUNNER_ENABLED` (unset ⇒ off) and `NEXT_PUBLIC_PYTHON_RUNNER_URL`; **not set in production** |
+| Hosting cost / impact | static files only (~13.4 MB raw, ~6.4 MB over the wire on first Run); no functions, no database, no change to Render |
+
+**Status: not yet deployed.** Creating the project needs write access to the `robert-leybas-projects` Vercel scope, which the connector used for AUD-60 did not have (HTTP 403). Until the project exists and `scripts/verify-deployment.mjs` passes against it, release gate G1 is open. Evidence will be recorded here (project URL, `verify-deployment` output, deployment id) when it is.
+
 ## Outstanding
 
 No release blockers remain. For future sprints, not this one:
