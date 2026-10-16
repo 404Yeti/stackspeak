@@ -138,6 +138,10 @@ export async function openApp(browser, parentOrigin, appApiUrl) {
   // not treat a missing SameSite attribute as Lax the way Chromium does, so the attribute has to be explicit.)
   if (appApiUrl) await context.addCookies([{ name: "session", value: "SECRET", url: appApiUrl, httpOnly: true, sameSite: "Lax" }]);
   const page = await context.newPage();
+  // Diagnostics for CI (shows up in the job log): errors and failed requests from the host page and its frames.
+  page.on("console", (m) => { if (m.type() === "error") console.log(`PAGE-CONSOLE-ERROR ${m.text().slice(0, 300)}`); });
+  page.on("pageerror", (e) => console.log(`PAGE-ERROR ${String(e).slice(0, 300)}`));
+  page.on("requestfailed", (r) => console.log(`REQUEST-FAILED ${r.url().slice(0, 150)} ${r.failure()?.errorText}`));
   await page.goto(`${parentOrigin}/__runner-host`);
   await page.waitForFunction(() => window.__ready === true);
   return { context, page, log };
@@ -153,20 +157,25 @@ export async function connect(page, runnerUrl, options = {}) {
   }, { runnerUrl, options });
 }
 
-export function runCode(page, code) {
-  return page.evaluate(async (code) => {
+const reportError = (where, result) => {
+  if (result.error) console.log(`RUNNER-ERROR(${where}) ${JSON.stringify(result.error)}`);
+  return result;
+};
+
+export async function runCode(page, code) {
+  return reportError("run", await page.evaluate(async (code) => {
     try {
       return { ok: await window.__session.run(code) };
     } catch (error) {
       return { error: { kind: error.kind, reason: error.reason, message: String(error.message), retryable: error.retryable } };
     }
-  }, code);
+  }, code));
 }
 
 export async function waitReady(page) {
-  return page.evaluate(async () => {
-    try { return { ok: await window.__session.ready }; } catch (e) { return { error: { kind: e.kind, message: String(e.message) } }; }
-  });
+  return reportError("ready", await page.evaluate(async () => {
+    try { return { ok: await window.__session.ready }; } catch (e) { return { error: { kind: e.kind, reason: e.reason, message: String(e.message) } }; }
+  }));
 }
 
 export const workerCount = (page) => page.workers().length;
