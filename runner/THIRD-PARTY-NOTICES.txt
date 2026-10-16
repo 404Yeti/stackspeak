@@ -1,0 +1,24 @@
+StackSpeak Python runner — third-party notices
+
+This site redistributes the Pyodide runtime UNMODIFIED, exactly as published in the npm package
+"pyodide" (pinned version in /build-info.json). Every shipped runtime file is verified against a
+SHA-256 manifest at build time and again against the deployed files.
+
+Pyodide
+  Version : see /build-info.json ("pyodideVersion")
+  License : Mozilla Public License 2.0 (MPL-2.0)
+  License text : https://www.mozilla.org/en-US/MPL/2.0/
+  Source code  : https://github.com/pyodide/pyodide (tag matching the version above)
+                 https://www.npmjs.com/package/pyodide
+  The files under /pyodide/ are the Covered Software in Executable Form, unmodified. Their
+  Source Code Form is available at the locations above; no modifications have been made.
+
+CPython (python_stdlib.zip and the interpreter compiled into pyodide.asm.wasm)
+  License : Python Software Foundation License Version 2
+  Text    : https://docs.python.org/3/license.html
+
+Other components compiled into pyodide.asm.wasm (Emscripten runtime, libffi, zlib, etc.) carry
+their own permissive licenses; see https://github.com/pyodide/pyodide/blob/main/LICENSE and the
+upstream projects.
+
+StackSpeak's own runner code (worker, bridge, harness) is not covered by the licenses above.

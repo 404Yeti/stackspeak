@@ -56,6 +56,10 @@ function commonHeaders(path, r) {
   check(`${path}: no Set-Cookie`, !r.h("set-cookie"), r.h("set-cookie"));
 }
 
+const notices = await get("/THIRD-PARTY-NOTICES.txt");
+commonHeaders("/THIRD-PARTY-NOTICES.txt", notices);
+check("/THIRD-PARTY-NOTICES.txt: served with the MPL-2.0 notice", notices.res.status === 200 && notices.body.toString("utf8").includes("MPL-2.0"), `status ${notices.res.status}`);
+
 const infoRes = await get("/build-info.json");
 commonHeaders("/build-info.json", infoRes);
 let info = {};

@@ -53,7 +53,7 @@ The dedicated origin is the least-privileged configuration that works, is verifi
 - **Results are not tamper-proof.** Output and status come from the same worker that runs student code; a student can make their own output say anything. Never use runner output as grading evidence.
 - Pyodide's snapshot API is private (`@private`/`@ignore`). It is an optimisation with a supported cold-start fallback; if neither works, Run is disabled with a clear message.
 - Browser behaviour verified: Chromium, Firefox, and WebKit **in CI** (see docs/python-runner.md for the current status of each). Real iOS/Android devices are a release requirement, not yet done.
-- Pyodide is MPL-2.0; it is redistributed unmodified from the `pyodide` npm package; its license file ships with the runtime files.
+- Pyodide is MPL-2.0; it is redistributed unmodified from the `pyodide` npm package. The npm package contains no LICENSE file, so the runner ships `THIRD-PARTY-NOTICES.txt` (license name, license text URL, source locations, "unmodified" statement) at `/THIRD-PARTY-NOTICES.txt`.
 - The app can only enable this by explicit flag (`NEXT_PUBLIC_PYTHON_RUNNER_ENABLED=true` and a valid `NEXT_PUBLIC_PYTHON_RUNNER_URL`); production stays off until the release gates in docs/python-runner.md pass.
 
 ## Supersedes / amends
