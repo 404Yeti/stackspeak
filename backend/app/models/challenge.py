@@ -84,10 +84,15 @@ class ChallengeSummary(BaseModel):
 
 
 class ChallengePublic(BaseModel):
-    """Everything a student is allowed to see. No `corrected_solution`, no
-    `instructor_notes`, no `evaluation_guidance`, no hidden test cases —
-    structurally impossible to leak them, since this model has no fields to
-    hold them in the first place (see Challenge.to_public)."""
+    """What the initial load (Read / Explain / Fix) may show. Deliberately
+    spoiler-free: no `bug_description`, `expected_behavior`, test cases, or
+    prompts that name the bug, and structurally no private fields either.
+    Later-stage content lives in the ChallengeTrace / ChallengeDefend /
+    ChallengeReview models below — see docs/challenge-schema.md.
+
+    Stage separation is a UX choice, not a security or anti-cheating
+    boundary: with no auth and no server-side state, every stage endpoint
+    can be called directly."""
 
     id: str
     version: int
@@ -97,18 +102,49 @@ class ChallengePublic(BaseModel):
     topic: str
     learning_objectives: list[str]
     starter_code: str
+    explain_prompts: list[str]
+    fix_prompts: list[str]
+
+
+class ChallengeTrace(BaseModel):
+    """Trace-stage content: the contract and the public test cases the
+    student reasons about by hand. Hidden cases are filtered out entirely."""
+
+    id: str
+    version: int
     expected_behavior: str
-    bug_description: str
     test_cases: list[PublicTestCase]
-    explanation_prompts: list[str]
+    trace_prompts: list[str]
+
+
+class ChallengeDefend(BaseModel):
+    """Defend-stage content."""
+
+    id: str
+    version: int
     defend_prompts: list[str]
+
+
+class ChallengeReview(BaseModel):
+    """Feedback-stage content, including the reference implementation. Still
+    an explicit allow-list: `instructor_notes` and `evaluation_guidance`
+    stay instructor-only, and the checklists here are separate,
+    student-facing fields rather than the instructor rubric."""
+
+    id: str
+    version: int
+    bug_description: str
+    corrected_solution: str
+    technical_checklist: list[str]
+    communication_checklist: list[str]
+    alternatives_note: str
 
 
 class Challenge(BaseModel):
     """Full internal challenge record. Never serialize this directly over
-    the public API — use `to_public()` / `to_summary()`, which build the
-    response from an explicit allow-list of fields rather than excluding a
-    deny-list, so a new private field added here never leaks by accident."""
+    the public API — use the `to_*()` methods, which build each response from
+    an explicit allow-list of fields rather than excluding a deny-list, so a
+    new private field added here never leaks by accident."""
 
     id: str
     version: int
@@ -122,8 +158,13 @@ class Challenge(BaseModel):
     bug_description: str
     corrected_solution: str
     test_cases: list[TestCase]
-    explanation_prompts: list[str]
+    explain_prompts: list[str]
+    fix_prompts: list[str]
+    trace_prompts: list[str]
     defend_prompts: list[str]
+    technical_checklist: list[str]
+    communication_checklist: list[str]
+    alternatives_note: str
     instructor_notes: str
     evaluation_guidance: EvaluationGuidance
 
@@ -147,8 +188,15 @@ class Challenge(BaseModel):
             topic=self.topic,
             learning_objectives=self.learning_objectives,
             starter_code=self.starter_code,
+            explain_prompts=self.explain_prompts,
+            fix_prompts=self.fix_prompts,
+        )
+
+    def to_trace(self) -> ChallengeTrace:
+        return ChallengeTrace(
+            id=self.id,
+            version=self.version,
             expected_behavior=self.expected_behavior,
-            bug_description=self.bug_description,
             test_cases=[
                 PublicTestCase(
                     description=tc.description,
@@ -160,6 +208,23 @@ class Challenge(BaseModel):
                 for tc in self.test_cases
                 if not tc.hidden
             ],
-            explanation_prompts=self.explanation_prompts,
+            trace_prompts=self.trace_prompts,
+        )
+
+    def to_defend(self) -> ChallengeDefend:
+        return ChallengeDefend(
+            id=self.id,
+            version=self.version,
             defend_prompts=self.defend_prompts,
+        )
+
+    def to_review(self) -> ChallengeReview:
+        return ChallengeReview(
+            id=self.id,
+            version=self.version,
+            bug_description=self.bug_description,
+            corrected_solution=self.corrected_solution,
+            technical_checklist=self.technical_checklist,
+            communication_checklist=self.communication_checklist,
+            alternatives_note=self.alternatives_note,
         )

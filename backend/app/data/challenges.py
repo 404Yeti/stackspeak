@@ -26,14 +26,16 @@ print(get_average([10, 20, 30]))"""
 
 AVERAGE_OF_LIST = Challenge(
     id="average-of-list",
-    version=1,
+    # v2: content restructured into stage-aware fields (AUD-52); v1 had a single
+    # spoiler-containing public payload.
+    version=2,
     title="Average of a List",
     language="python",
     difficulty="beginner",
     topic="Lists & aggregation",
     learning_objectives=[
         "Trace a loop that accumulates a running total",
-        "Identify a missing edge-case check before it causes a runtime error",
+        "Reason about how a function behaves on unusual inputs",
         "Distinguish a genuine bug from a legitimate design choice, and defend "
         "a choice with reasoning",
     ],
@@ -79,11 +81,18 @@ AVERAGE_OF_LIST = Challenge(
             hidden=True,
         ),
     ],
-    explanation_prompts=[
+    explain_prompts=[
         "In your own words, what does get_average do?",
-        "Walk through what happens, line by line, when nums is an empty list.",
-        "Why does total / len(nums) raise a ZeroDivisionError here, and why isn't "
-        "that a clear, informative error for the caller?",
+        "What does the last line print, and how does the function get that value?",
+    ],
+    fix_prompts=[
+        "What is wrong with this code, and what makes you think so?",
+        "How would you change it, and why that change?",
+    ],
+    trace_prompts=[
+        "Walk through your fixed function line by line for each input. What does it "
+        "return or raise?",
+        "Which input is the riskiest for your fix, and what does your code do with it?",
     ],
     defend_prompts=[
         "Why did you choose to raise a ValueError for an empty list instead of "
@@ -93,6 +102,26 @@ AVERAGE_OF_LIST = Challenge(
         "How would you decide between raising an exception and returning a "
         "sentinel value in a real codebase?",
     ],
+    technical_checklist=[
+        "I identified that dividing by len(nums) fails when nums is empty "
+        "(ZeroDivisionError).",
+        "My fix handles the empty list before dividing.",
+        "My fix picks one behavior for empty input (raise an error or return a "
+        "value) and applies it consistently.",
+        "My fix still returns the correct average for non-empty lists.",
+    ],
+    communication_checklist=[
+        "I explained what the function does before describing what is wrong.",
+        "I stated the root cause, not only the symptom (\"it crashes\").",
+        "I gave a reason for my fix, using words like \"because\" or \"so that\".",
+        "I used precise terms: loop, total, divide, empty list, exception.",
+    ],
+    alternatives_note=(
+        "This is one reference implementation, not the only valid answer. "
+        "Returning 0.0 for an empty list can also be reasonable if your system "
+        "treats \"no data\" as a zero baseline — but be ready to explain why it "
+        "will not hide a bug elsewhere in the caller."
+    ),
     instructor_notes=(
         "Canonical fix here raises ValueError on empty input. Returning 0.0 is a "
         "defensible alternative under some specs (treating 'no data' as a "

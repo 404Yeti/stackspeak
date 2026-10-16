@@ -19,8 +19,13 @@ def _minimal_challenge(**overrides: object) -> Challenge:
         bug_description="Doesn't do the thing.",
         corrected_solution="pass",
         test_cases=[TestCase(description="case", input=1, expected_output=1)],
-        explanation_prompts=["What does this do?"],
+        explain_prompts=["What does this do?"],
+        fix_prompts=["What is wrong?"],
+        trace_prompts=["What does it return?"],
         defend_prompts=["Why this fix?"],
+        technical_checklist=["Found the bug"],
+        communication_checklist=["Explained clearly"],
+        alternatives_note="One reference implementation.",
         instructor_notes="Notes for instructors only.",
         evaluation_guidance=EvaluationGuidance(
             technical_criteria=["Correctness"],
@@ -67,22 +72,30 @@ def test_test_case_accepts_expected_exception_only() -> None:
 
 
 def test_to_public_excludes_private_fields() -> None:
-    public = AVERAGE_OF_LIST.to_public()
-    public_fields = type(public).model_fields
+    private = {"instructor_notes", "evaluation_guidance", "hidden"}
+    for model in (
+        AVERAGE_OF_LIST.to_public(),
+        AVERAGE_OF_LIST.to_trace(),
+        AVERAGE_OF_LIST.to_defend(),
+        AVERAGE_OF_LIST.to_review(),
+    ):
+        assert not private & set(type(model).model_fields), type(model).__name__
 
-    assert "corrected_solution" not in public_fields
-    assert "instructor_notes" not in public_fields
-    assert "evaluation_guidance" not in public_fields
+    # corrected_solution is allowed only in the review (Feedback) model.
+    assert "corrected_solution" not in type(AVERAGE_OF_LIST.to_public()).model_fields
+    assert "corrected_solution" not in type(AVERAGE_OF_LIST.to_trace()).model_fields
+    assert "corrected_solution" not in type(AVERAGE_OF_LIST.to_defend()).model_fields
+    assert "corrected_solution" in type(AVERAGE_OF_LIST.to_review()).model_fields
 
 
-def test_to_public_excludes_hidden_test_cases() -> None:
+def test_to_trace_excludes_hidden_test_cases() -> None:
     hidden_count = sum(1 for tc in AVERAGE_OF_LIST.test_cases if tc.hidden)
     assert hidden_count > 0, (
         "seed should include at least one hidden test case to make this test meaningful"
     )
 
-    public = AVERAGE_OF_LIST.to_public()
-    assert len(public.test_cases) == len(AVERAGE_OF_LIST.test_cases) - hidden_count
+    trace = AVERAGE_OF_LIST.to_trace()
+    assert len(trace.test_cases) == len(AVERAGE_OF_LIST.test_cases) - hidden_count
 
 
 def test_to_summary_shape() -> None:
