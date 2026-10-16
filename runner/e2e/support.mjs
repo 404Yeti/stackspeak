@@ -1,4 +1,7 @@
-import http from "node:http";
+import https from "node:https";
+import { execFileSync } from "node:child_process";
+import { mkdtempSync, readFileSync as readFile } from "node:fs";
+import { tmpdir } from "node:os";
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -56,15 +59,26 @@ export async function installHost(context, hostOrigin, log) {
   });
 }
 
+// Throwaway self-signed certificate (browsers are launched with ignoreHTTPSErrors). Every local server in the
+// suite is https because WebKit blocks an http iframe inside an https page even for loopback; Chromium and
+// Firefox exempt loopback, which is why this only showed up in WebKit. https everywhere also means the
+// attacker/app servers are not accidentally unreachable through mixed-content blocking (a false "no leak").
+const tls = (() => {
+  const dir = mkdtempSync(join(tmpdir(), "runner-e2e-tls-"));
+  execFileSync("openssl", ["req", "-x509", "-newkey", "rsa:2048", "-nodes", "-days", "2", "-subj", "/CN=localhost",
+    "-addext", "subjectAltName=DNS:localhost,IP:127.0.0.1", "-keyout", join(dir, "k.pem"), "-out", join(dir, "c.pem")], { stdio: "ignore" });
+  return { key: readFile(join(dir, "k.pem"), "utf8"), cert: readFile(join(dir, "c.pem"), "utf8") };
+})();
+
 function startAttacker() {
   const seen = [];
-  const server = http.createServer((req, res) => {
+  const server = https.createServer(tls, (req, res) => {
     seen.push(`${req.method} ${req.url}`);
     res.writeHead(200, { "access-control-allow-origin": "*", "content-type": "text/javascript" });
     res.end("/* attacker */");
   });
   return new Promise((resolve) => server.listen(0, "127.0.0.1", () => resolve({
-    seen, url: `http://127.0.0.1:${server.address().port}`, close: () => new Promise((r) => server.close(r)),
+    seen, url: `https://127.0.0.1:${server.address().port}`, close: () => new Promise((r) => server.close(r)),
   })));
 }
 
@@ -76,13 +90,13 @@ function startAttacker() {
  */
 function startAppApi() {
   const requests = [];
-  const server = http.createServer((req, res) => {
+  const server = https.createServer(tls, (req, res) => {
     requests.push(`${req.method} ${req.url} cookie=${req.headers.cookie ? "yes" : "no"}`);
     res.writeHead(200, { "content-type": "application/json", "set-cookie": "session=SECRET; Path=/; HttpOnly" });
     res.end('{"secret":"TOP-SECRET"}');
   });
   return new Promise((resolve) => server.listen(0, () => resolve({
-    requests, url: `http://localhost:${server.address().port}`, close: () => new Promise((r) => server.close(r)),
+    requests, url: `https://localhost:${server.address().port}`, close: () => new Promise((r) => server.close(r)),
   })));
 }
 
@@ -96,15 +110,15 @@ export const test = base.extend({
   // Production build (hardening ON, approved parent = the real production origin), served locally.
   prodRunner: [async ({}, use) => {
     if (deployed) return use({ url: DEPLOYED_URL, parent: PROD_PARENT, deployed: true, close: async () => {} });
-    const s = await startServer({ dist: join(runnerRoot, "dist"), parents: [PROD_PARENT] });
+    const s = await startServer({ dist: join(runnerRoot, "dist"), parents: [PROD_PARENT], tls });
     await use({ url: s.url, parent: PROD_PARENT, deployed: false, close: s.close });
     await s.close();
   }, { scope: "worker" }],
 
   // Test build (hardening OFF so the CSP is tested on its own, test hooks ON). Never deployed.
   testRunner: [async ({}, use) => {
-    const s = await startServer({ dist: join(runnerRoot, "dist-test"), parents: [TEST_PARENT] });
-    const noCsp = await startServer({ dist: join(runnerRoot, "dist-test"), parents: [TEST_PARENT], stripWorkerCsp: true });
+    const s = await startServer({ dist: join(runnerRoot, "dist-test"), parents: [TEST_PARENT], tls });
+    const noCsp = await startServer({ dist: join(runnerRoot, "dist-test"), parents: [TEST_PARENT], stripWorkerCsp: true, tls });
     await use({ url: s.url, parent: TEST_PARENT, noCspUrl: noCsp.url });
     await s.close();
     await noCsp.close();
