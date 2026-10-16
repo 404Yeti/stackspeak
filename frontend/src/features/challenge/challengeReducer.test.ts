@@ -28,14 +28,14 @@ describe("flowReducer", () => {
   });
 
   it("advances from Read freely", () => {
-    expect(flowReducer(at("read"), { type: "next", traceCaseCount: 0 }).stage).toBe("explain");
+    expect(flowReducer(at("read"), { type: "next", traceFocusIndex: null }).stage).toBe("explain");
   });
 
   it("refuses to leave Explain without a substantive explanation", () => {
-    const blocked = flowReducer(at("explain", { explanation: "short" }), { type: "next", traceCaseCount: 0 });
+    const blocked = flowReducer(at("explain", { explanation: "short" }), { type: "next", traceFocusIndex: null });
     expect(blocked.stage).toBe("explain");
 
-    const ok = flowReducer(at("explain", { explanation: LONG }), { type: "next", traceCaseCount: 0 });
+    const ok = flowReducer(at("explain", { explanation: LONG }), { type: "next", traceFocusIndex: null });
     expect(ok.stage).toBe("fix");
   });
 
@@ -45,26 +45,31 @@ describe("flowReducer", () => {
   });
 
   it("refuses to leave Fix without a diagnosis", () => {
-    expect(flowReducer(at("fix"), { type: "next", traceCaseCount: 0 }).stage).toBe("fix");
-    expect(flowReducer(at("fix", { diagnosis: LONG }), { type: "next", traceCaseCount: 0 }).stage).toBe("trace");
+    expect(flowReducer(at("fix"), { type: "next", traceFocusIndex: null }).stage).toBe("fix");
+    expect(flowReducer(at("fix", { diagnosis: LONG }), { type: "next", traceFocusIndex: null }).stage).toBe("trace");
   });
 
-  it("requires every trace case to be marked before leaving Trace", () => {
-    const base = at("trace", { revealed: { 0: true, 1: true }, marks: { 0: "matches" } });
-    expect(flowReducer(base, { type: "next", traceCaseCount: 2 }).stage).toBe("trace");
+  it("requires the focus exercise to be compared before leaving Trace", () => {
+    const base = at("trace", { revealed: { 3: true } });
+    expect(flowReducer(base, { type: "next", traceFocusIndex: 3 }).stage).toBe("trace");
 
-    const done = { ...base, marks: { 0: "matches", 1: "unsure" } as FlowState["marks"] };
-    expect(flowReducer(done, { type: "next", traceCaseCount: 2 }).stage).toBe("defend");
+    // Marks on other cases (e.g. from an older draft) don't count.
+    const other = { ...base, marks: { 0: "matches" } as FlowState["marks"] };
+    expect(flowReducer(other, { type: "next", traceFocusIndex: 3 }).stage).toBe("trace");
+
+    const done = { ...base, marks: { 3: "unsure" } as FlowState["marks"] };
+    expect(flowReducer(done, { type: "next", traceFocusIndex: 3 }).stage).toBe("defend");
   });
 
-  it("does not leave Trace when the cases haven't loaded", () => {
-    expect(blockedReason(at("trace"), 0)).toMatch(/haven't loaded/);
+  it("does not leave Trace when the exercise hasn't loaded", () => {
+    expect(blockedReason(at("trace"), null)).toMatch(/hasn't loaded/);
+    expect(flowReducer(at("trace", { marks: { 0: "matches" } }), { type: "next", traceFocusIndex: null }).stage).toBe("trace");
   });
 
   it("refuses to leave Defend without a defense, and Feedback is terminal", () => {
-    expect(flowReducer(at("defend"), { type: "next", traceCaseCount: 0 }).stage).toBe("defend");
-    expect(flowReducer(at("defend", { defense: LONG }), { type: "next", traceCaseCount: 0 }).stage).toBe("feedback");
-    expect(flowReducer(at("feedback"), { type: "next", traceCaseCount: 0 }).stage).toBe("feedback");
+    expect(flowReducer(at("defend"), { type: "next", traceFocusIndex: null }).stage).toBe("defend");
+    expect(flowReducer(at("defend", { defense: LONG }), { type: "next", traceFocusIndex: null }).stage).toBe("feedback");
+    expect(flowReducer(at("feedback"), { type: "next", traceFocusIndex: null }).stage).toBe("feedback");
   });
 
   it("goes back but never before Read", () => {
@@ -74,7 +79,7 @@ describe("flowReducer", () => {
 
   it("cannot skip stages — only one step per next", () => {
     const state = at("read", { explanation: LONG, diagnosis: LONG, defense: LONG });
-    expect(flowReducer(state, { type: "next", traceCaseCount: 0 }).stage).toBe("explain");
+    expect(flowReducer(state, { type: "next", traceFocusIndex: null }).stage).toBe("explain");
   });
 
   it("keeps drafts when navigating back", () => {

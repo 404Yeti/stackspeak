@@ -11,6 +11,7 @@ import { ExplainStage } from "./ExplainStage";
 import { FeedbackStage, useReviewContent } from "./FeedbackStage";
 import { FixStage } from "./FixStage";
 import { ReadStage } from "./ReadStage";
+import { pickTraceFocusIndex } from "./traceFocus";
 import { ContentState, PipRow } from "./StageLayout";
 import { TraceStage, useTraceContent } from "./TraceStage";
 import { WorkspaceTopBar } from "./WorkspaceTopBar";
@@ -122,8 +123,8 @@ function ChallengeFlow({ challenge, onRestart }: { challenge: ChallengeLoad; onR
   const defend = useDefendContent(challenge.id, stageIndex >= STAGE_ORDER.indexOf("defend"));
   const review = useReviewContent(challenge.id, stageIndex >= STAGE_ORDER.indexOf("feedback"));
 
-  const traceCaseCount = trace.data?.test_cases.length ?? 0;
-  const reason = blockedReason(state, traceCaseCount);
+  const traceFocusIndex = trace.data ? pickTraceFocusIndex(trace.data.test_cases) : null;
+  const reason = blockedReason(state, traceFocusIndex);
 
   const stageProps = {
     challenge,
@@ -138,7 +139,7 @@ function ChallengeFlow({ challenge, onRestart }: { challenge: ChallengeLoad; onR
       : undefined,
     onNext: () => {
       setNavigated(true);
-      dispatch({ type: "next", traceCaseCount });
+      dispatch({ type: "next", traceFocusIndex });
     },
     blockedReason: reason,
   };

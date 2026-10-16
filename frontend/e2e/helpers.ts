@@ -42,20 +42,20 @@ export async function toTrace(page: Page) {
   await expect(page.getByRole("heading", { level: 2, name: "Trace it by hand" })).toBeVisible();
 }
 
-export async function traceAllCases(page: Page) {
-  const cases = page.getByRole("group", { name: /^Case \d/ });
-  await expect(cases).toHaveCount(4);
-  for (let i = 0; i < 4; i += 1) {
-    const group = cases.nth(i);
-    await group.getByRole("textbox").fill("returns a number");
-    await group.getByRole("button", { name: "Reveal expected outcome" }).click();
-    await expect(group.getByText(/^Expected:/)).toBeVisible();
-    await group.getByLabel("My prediction matched").check();
-  }
+export const TRACE_EXERCISE = /^Predict: what happens with an empty list\?/;
+
+/** The single trace exercise: predict, reveal the expected outcome, compare. */
+export async function traceFocusCase(page: Page) {
+  const exercise = page.getByRole("region", { name: TRACE_EXERCISE });
+  await expect(exercise).toBeVisible();
+  await exercise.getByLabel(/What does your code do when it receives an empty list\?/).fill("It raises an error because there is nothing to divide.");
+  await exercise.getByRole("button", { name: "Reveal expected outcome" }).click();
+  await expect(exercise.getByText(/^Expected outcome:/)).toBeVisible();
+  await exercise.getByLabel("My prediction matched").check();
 }
 
 export async function toDefend(page: Page) {
-  await traceAllCases(page);
+  await traceFocusCase(page);
   await page.getByRole("button", { name: "Continue to Defend" }).click();
   await expect(page.getByRole("heading", { level: 2, name: "Defend your fix" })).toBeVisible();
 }
