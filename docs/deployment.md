@@ -200,6 +200,43 @@ PR [#5](https://github.com/404Yeti/stackspeak/pull/5), reviewed head `90167b1`, 
 
 **Known limitations:** see `docs/decisions/0002-aud-52-interactive-flow.md` — "13 Mobile challenge" Figma node unlocated (responsive layout uses the desktop patterns); whole-number floats display without `.0`; Tab is not captured in the code field (indent with spaces); browser Back leaves the workspace (stage isn't in the URL); Vercel *preview* deployments can't load the challenge (CORS allows only production + localhost); "daily" = the first challenge the API lists; stage gating is UX-only, not a security boundary; the removed fields in `GET /api/challenges/{id}` (PR A) remain a breaking change for any external consumer.
 
+## AUD-57 release (Trace stage: one focused prediction exercise)
+
+PR [#6](https://github.com/404Yeti/stackspeak/pull/6), reviewed head `6e4b49f`, merge commit `2e55f69` (2026-10-16). A UI-only follow-up to AUD-52 (which stays Done): Trace shows **one** empty-list prediction exercise in a stacked, full-width layout instead of four stacked cards. See `docs/decisions/0002-aud-52-interactive-flow.md` → "Addendum (AUD-57)".
+
+**Pre-merge:** head `6e4b49f` verified; checks `frontend`, `backend`, `e2e`, `Vercel`, `Vercel Preview Comments` all green; mergeable/clean; diff limited to 10 files (Trace/reducer/workspace code, unit + Playwright tests, ADR addendum) — **no backend, dependency, CI, shared-component, or other-stage files**. Merged with a merge commit. CI on `main` for `2e55f69`: success.
+
+**Deployment evidence:**
+
+| Check | Result |
+|---|---|
+| Vercel production deployment of the exact merge commit | ✅ GitHub deployment `7109024042`, environment `Production`, sha `2e55f69`, state `success` ("Deployment has completed"), `https://stackspeak-da4u3teft-robert-leybas-projects.vercel.app` |
+| Render backend | ✅ `/api/health` commit `97d31615269880988c0934554ab5998b2b010361` — unchanged (PR A revision); no backend deployment was required or made |
+
+**Production acceptance** — Playwright (headless Chromium) against `https://stackspeak.vercel.app` + `https://stack-speak.onrender.com`, **13/13 passed**:
+
+| Check | Result |
+|---|---|
+| Full six-stage journey + restart | ✅ at each of **320, 390, 768, 1024, 1440px** (stepper variant correct per width) |
+| Trace shows exactly one exercise | ✅ one "Predict: what happens with an empty list?" region, one Reveal button, no "Case N" groups, call shown as `get_average([])` |
+| Student's edited code shown | ✅ heading "Your current code"; the edited lines (`raise ValueError('empty')`, `sum(nums) / len(nums)`) present in the code panel |
+| Starter-code label when unedited | ✅ heading "Starter code", "…this is the starter code", starter lines shown, no "Your current code" heading |
+| Nothing answer-revealing before the reveal | ✅ page text contains no `Raises ValueError`, `ZeroDivisionError`, `Expected outcome`, or contract text until after "Reveal expected outcome" |
+| Order enforced | ✅ Reveal disabled until a prediction exists; Continue disabled until the reveal **and** a comparison choice; Defend/review content not requested before Trace is completed |
+| No fabricated results | ✅ "StackSpeak did not run your code" shown; no pass/fail/pytest/terminal/score/AI text |
+| Drafts, navigation, restart | ✅ Trace prediction + edited code survive a reload; Back to Fix keeps the code and forward keeps the prediction; Start over (with confirmation) clears everything, still empty after a reload |
+| Blocked `sessionStorage` | ✅ full flow completes, no errors |
+| Error + retry | ✅ challenge load, `/trace` (500 → "Your answers so far are safe" → Try again), and `/review` failures all recover with answers intact |
+| Keyboard | ✅ Enter/Tab/Space-only path through Fix → Trace → Defend; focus lands on each new stage heading; `aria-current="step"` on Trace |
+| Overflow / errors | ✅ no horizontal overflow at any stage or width; zero console, page, or request errors; only GETs to `stackspeak.vercel.app` / `stack-speak.onrender.com`; no typed answer in any request |
+| API unchanged | ✅ initial load spoiler-free; no `instructor_notes`/`evaluation_guidance`/hidden/`[42]` in any response; solution only in `/review`; `/trace` still serves all 4 public cases (the UI shows one); `no-store` on stage endpoints |
+| Reference solution | ✅ absent from every `_next/static` asset; `/review` not requested before Feedback |
+| Other stages + homepage | ✅ Read/Explain/Fix/Defend/Feedback behave as before inside the full journey; `/`, `/daily-challenge`, `/courses`, `/practice-lab`, `/interview-practice`, `/privacy`, `/terms`, `/progress` all 200, no overflow, no console errors; existing nav intact |
+
+(One-off acceptance spec, not committed; it first reported 12/13 because of a stray click on a disabled button in the *test script*, not an app defect — the corrected test passed.)
+
+**Known limitations:** unchanged from AUD-52, plus — Trace has no per-case navigation by design (the other three public cases are served by the API but not shown); the pre-existing draft marks for other cases are ignored (only the focus exercise gates Continue); the exercise keeps the challenge's generic `trace_prompts` wording ("…for each input"), which is backend content and was deliberately not changed.
+
 ## Outstanding
 
 No release blockers remain. For future sprints, not this one:
