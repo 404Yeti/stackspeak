@@ -5,13 +5,16 @@ const reportEl = document.getElementById("report");
 const copyBtn = document.getElementById("copy");
 
 const params = new URLSearchParams(location.search);
-let target;
+// The only cross-origin host this page ever contacts is the production runner alias (a static, public file), plus
+// loopback hosts for the automated tests. Anything else in ?target= is ignored, so a crafted link cannot aim the browser elsewhere.
+const DEFAULT_TARGET = "https://stackspeak-runner.vercel.app";
+let target = DEFAULT_TARGET + "/build-info.json";
 try {
-  const u = new URL(params.get("target") || "https://stackspeak-runner.vercel.app");
-  if (u.protocol !== "https:") throw new Error("target must be https");
-  target = u.origin + "/build-info.json";
-} catch (e) {
-  target = "https://stackspeak-runner.vercel.app/build-info.json";
+  const u = new URL(params.get("target") || DEFAULT_TARGET);
+  const loopback = u.hostname === "127.0.0.1" || u.hostname === "localhost";
+  if (u.protocol === "https:" && (u.origin === DEFAULT_TARGET || loopback)) target = u.origin + "/build-info.json";
+} catch {
+  /* keep the default */
 }
 
 const ua = navigator.userAgent;
