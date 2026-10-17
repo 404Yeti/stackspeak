@@ -15,6 +15,11 @@ export function bridgeCsp(parentOrigins) {
   );
 }
 
+// DIAGNOSTIC (throwaway branch only): a top-level page that is never framed. It may fetch any https host so it can
+// prove a cross-origin target is reachable; it runs no student code. The probe worker below uses WORKER_CSP unchanged.
+export const DIAG_PAGE_CSP =
+  "default-src 'none'; script-src 'self'; style-src 'self'; connect-src https:; worker-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'";
+
 export const IMMUTABLE = "public, max-age=31536000, immutable";
 export const REVALIDATE = "public, max-age=0, must-revalidate";
 
@@ -75,6 +80,12 @@ export function headerRules({ approvedParentOrigins }) {
       test: /^\/bridge\.[a-f0-9]{12}\.mjs$/,
       headers: { "Cache-Control": IMMUTABLE },
     },
+    ...["/diag/", "/diag/index.html"].map((source) => ({
+      id: "diag-page" + source, source, test: new RegExp("^" + source.replace(/\./g, "\\.") + "$"),
+      headers: { "Content-Security-Policy": DIAG_PAGE_CSP, "Cache-Control": "no-store" },
+    })),
+    { id: "diag-probe", source: "/diag/probe.mjs", test: /^\/diag\/probe\.mjs$/, headers: { "Content-Security-Policy": WORKER_CSP, "Cache-Control": "no-store" } },
+    { id: "diag-assets", source: "/diag/(diag\\.mjs|diag\\.css)", test: /^\/diag\/diag\.(mjs|css)$/, headers: { "Cache-Control": "no-store" } },
     { id: "pyodide", source: "/pyodide/(.*)", test: /^\/pyodide\/.*$/, headers: { "Cache-Control": IMMUTABLE } },
     { id: "build-info", source: "/build-info.json", test: /^\/build-info\.json$/, headers: { "Cache-Control": REVALIDATE } },
   ];

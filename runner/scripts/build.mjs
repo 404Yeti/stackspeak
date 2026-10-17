@@ -117,6 +117,7 @@ export function build({ test = false, outDir } = {}) {
     approvedParentOrigins: parents,
     test,
   };
+  if (existsSync(join(root, "diagnostics"))) cpSync(join(root, "diagnostics"), join(dist, "diag"), { recursive: true }); // throwaway-branch diagnostic
   cpSync(join(root, "THIRD-PARTY-NOTICES.txt"), join(dist, "THIRD-PARTY-NOTICES.txt"));
   writeFileSync(join(dist, "build-info.json"), JSON.stringify(info, null, 2) + "\n");
   return { dist, info, parents };
