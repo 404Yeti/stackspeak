@@ -2,7 +2,7 @@
 
 Real Python execution for the Fix stage, run in the **student's own browser** inside an isolated, separately-hosted runner. This document is the deployment guide, threat model, and release checklist. The decision record is [ADR 0003](./decisions/0003-python-runner.md).
 
-> **Status: PR 1 (infrastructure) merged; PR 2 (Fix-stage Run Code UI) in review.** The Run button exists but is behind a build-time flag that is **OFF in production** (see "PR 2" below) until every release gate below passes. Nothing here runs student code on StackSpeak's servers, and no student code is ever sent to FastAPI.
+> **Status: PR 1 (infrastructure, [#7](https://github.com/404Yeti/stackspeak/pull/7), merge `7ac613b`) and PR 2 (Fix-stage Run Code UI, [#8](https://github.com/404Yeti/stackspeak/pull/8), merge `14f3a65`) are merged.** The Run button exists but is behind a build-time flag that is **OFF in production** (verified after the merge: neither runner variable is set on the StackSpeak project and the served page and bundle contain no runner URL) (see "PR 2" below) until every release gate below passes. Nothing here runs student code on StackSpeak's servers, and no student code is ever sent to FastAPI.
 
 ## Architecture
 
@@ -229,7 +229,7 @@ Caveats found while rehearsing: the project's first deployment was assigned `tar
 
 **A. Merge blockers for PR #7 (infrastructure only)** — all met at the time of writing: CI green on Chromium, Firefox and WebKit; deployed verifier 70/70 and deployed e2e subset green; no known defect; threat model, deployment, rollback and licence findings documented; feature flag OFF; no UI. Not blockers for merging: anything below.
 
-**B. Blockers for enabling Run Code in production** (flag stays OFF until all are closed): real-device Safari/iOS and Android testing incl. memory and start-up on low-end phones (G2/G3); independent security review (G5); human/legal MPL-2.0 and notices sign-off (G6); rollback owner and drill accepted by the team (G9); PR 2 (UI) and its own review; decision on Vercel project protections (2FA, who may deploy to production); the unresolved memory risk below.
+**B. Blockers for enabling Run Code in production** (flag stays OFF until all are closed): real-device Safari/iOS and Android testing incl. memory and start-up on low-end phones (G2/G3); independent security review (G5); human/legal MPL-2.0 and notices sign-off (G6); rollback owner and drill accepted by the team (G9); decision on Vercel project protections (2FA, who may deploy to production); the unresolved memory risk below.
 
 **Unresolved browser-memory risk (accepted for PR 1, must be accepted again before enablement):** a program can allocate memory until the tab or browser process is killed (measured: ≈2 GB within 5 s in Node; the browser's limit depends on device and cannot be set by a worker). The runner bounds time (5 s) and output only. Mitigations that exist: the bridge terminates the worker after every run and on timeout; heartbeat loss makes the client report `crashed` ("it may have run out of memory"); `terminate()` releases memory (3.3 GB → 0.36 GB measured). What cannot be done: cap or pre-empt allocation inside the page. Impact is limited to the student's own browser (the page may reload and lose unsaved work — PR 2 must persist drafts before Run). Low-memory devices get a warning, not a block (owner decision).
 
