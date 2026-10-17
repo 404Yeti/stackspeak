@@ -1,7 +1,7 @@
 {
   "protocolVersion": 1,
   "pyodideVersion": "314.0.7",
-  "approvedParentOrigins": ["https://stackspeak.vercel.app"],
+  "approvedParentOrigins": ["https://stackspeak-git-test-aud60-device-robert-leybas-projects.vercel.app"],
   "limits": {
     "runTimeoutMs": 5000,
     "initTimeoutMs": 30000,
