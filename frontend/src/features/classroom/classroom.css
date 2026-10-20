@@ -1,0 +1,367 @@
+.classroom-shell {
+  min-height: 100vh;
+}
+.classroom-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.2rem 2rem;
+  border-bottom: 1px solid var(--color-border-subtle);
+  background: var(--color-surface);
+}
+.classroom-library {
+  max-width: 1180px;
+  margin: auto;
+  padding: 3.5rem 2rem;
+}
+.classroom-eyebrow {
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  color: var(--color-accent-soft);
+}
+.classroom-filters {
+  display: grid;
+  grid-template-columns: 2fr repeat(3, 1fr);
+  gap: 1rem;
+  padding: 1.25rem;
+  margin: 2.5rem 0 1.5rem;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+}
+.classroom-filters label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+.classroom-input {
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  padding: 0.7rem 0.8rem;
+  background: var(--color-background);
+  color: var(--color-text-primary);
+  font-size: 0.875rem;
+}
+.classroom-shell
+  :is(button, input, select, textarea, summary, a):focus-visible {
+  outline: 2px solid var(--color-accent-soft);
+  outline-offset: 4px;
+}
+.classroom-exercise-card {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 1.5rem;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  transition: border-color 0.15s;
+}
+.classroom-exercise-card:hover {
+  border-color: var(--color-accent);
+}
+.classroom-language {
+  display: grid;
+  place-content: center;
+  width: 54px;
+  height: 54px;
+  flex-shrink: 0;
+  border-radius: var(--radius-md);
+  background: var(--color-elevated);
+  color: var(--color-info);
+  font-family: var(--font-mono), monospace;
+  font-weight: 600;
+}
+.classroom-text-button {
+  color: var(--color-accent-soft);
+  font-size: 0.8rem;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  cursor: pointer;
+}
+.classroom-workspace {
+  max-width: 1560px;
+  margin: auto;
+  padding: 1.5rem 2rem 3rem;
+}
+.classroom-context {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+.classroom-stages {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+  margin: 1.75rem 0 2rem;
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+.classroom-stages button {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  border-bottom: 2px solid transparent;
+  padding: 0.8rem 0;
+  font-size: 0.9rem;
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+.classroom-stages button[aria-current] {
+  border-color: var(--color-accent);
+  color: var(--color-text-primary);
+}
+.classroom-stage-number {
+  color: var(--color-accent-soft);
+  font-size: 0.7rem;
+  font-family: var(--font-mono), monospace;
+}
+.classroom-columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 350px;
+  align-items: start;
+  gap: 2rem;
+}
+.classroom-support {
+  min-width: 0;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+}
+.classroom-support-tabs {
+  display: flex;
+  justify-content: space-around;
+  border-bottom: 1px solid var(--color-border-subtle);
+  padding: 0 0.5rem;
+}
+.classroom-support-tabs button {
+  cursor: pointer;
+  padding: 1rem 0.35rem;
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  border-bottom: 2px solid transparent;
+}
+.classroom-support-tabs button[aria-pressed="true"] {
+  color: var(--color-accent-soft);
+  border-color: var(--color-accent);
+}
+.classroom-guide {
+  margin-top: 2rem;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  padding: 1.25rem;
+}
+.classroom-editable {
+  position: relative;
+  font-family: var(--font-mono), monospace;
+  font-size: 0.875rem;
+}
+.classroom-editable textarea {
+  color: transparent;
+  caret-color: var(--color-text-primary);
+  position: relative;
+  z-index: 1;
+}
+.classroom-editable textarea::selection {
+  background: var(--color-accent);
+  color: var(--color-text-on-accent);
+}
+.classroom-code-overlay {
+  position: absolute;
+  left: calc(2rem + 1px + var(--classroom-gutter));
+  right: calc(1rem + 1px);
+  top: calc(3rem + 1px);
+  bottom: calc(1rem + 1px);
+  pointer-events: none;
+  overflow: hidden;
+  white-space: pre;
+  font-family: var(--font-mono), monospace;
+  font-size: 0.875rem;
+  line-height: 1.5rem;
+}
+.classroom-presenting .classroom-header,
+.classroom-presenting .classroom-context,
+.classroom-presenting .classroom-description {
+  display: none;
+}
+.classroom-presenting .classroom-columns {
+  grid-template-columns: minmax(0, 1fr) 330px;
+}
+body:has(.classroom-presenting) > footer {
+  display: none;
+}
+@media (min-width: 640px) {
+  .classroom-code-overlay {
+    top: 3rem;
+  }
+}
+@media (max-width: 1000px) {
+  .classroom-filters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .classroom-columns,
+  .classroom-presenting .classroom-columns {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .classroom-support {
+    max-width: none;
+  }
+}
+@media (max-width: 640px) {
+  .classroom-header {
+    padding: 1rem;
+  }
+  .classroom-library,
+  .classroom-workspace {
+    padding: 1.5rem 1rem;
+  }
+  .classroom-filters {
+    grid-template-columns: 1fr;
+    margin-top: 1.5rem;
+  }
+  .classroom-exercise-card {
+    flex-wrap: wrap;
+    padding: 1rem;
+    gap: 1rem;
+  }
+  .classroom-language {
+    display: none;
+  }
+  .classroom-exercise-card > a {
+    width: 100%;
+  }
+  .classroom-stages {
+    gap: 1.5rem;
+  }
+  .classroom-context {
+    align-items: flex-start;
+  }
+}
+@media (forced-colors: active) {
+  .classroom-editable textarea {
+    color: CanvasText;
+  }
+  .classroom-code-overlay {
+    display: none;
+  }
+}
+
+.classroom-code-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.6rem 0;
+  margin-bottom: 0.5rem;
+}
+.classroom-code-controls button:not(.classroom-text-button) {
+  display: grid;
+  place-content: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  cursor: pointer;
+}
+.classroom-code-controls button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.classroom-code-controls output {
+  min-width: 48px;
+  text-align: center;
+  font-family: var(--font-mono), monospace;
+  font-size: 0.75rem;
+}
+.classroom-code :is(pre, textarea),
+.classroom-code .font-mono.text-sm,
+.classroom-code [aria-hidden="true"] {
+  font-size: var(--classroom-code-size);
+  line-height: 1.7;
+}
+.classroom-code [aria-hidden="true"] p {
+  line-height: 1.7;
+}
+.classroom-code-line {
+  display: block;
+  min-height: 1.7em;
+  padding-right: 1rem;
+}
+.classroom-line-focused {
+  background: var(--color-elevated);
+  box-shadow: inset 3px 0 var(--color-accent-soft);
+}
+.classroom-code .classroom-editable {
+  font-size: var(--classroom-code-size);
+}
+.classroom-code .classroom-code-overlay {
+  top: calc(3rem + 1px);
+}
+.classroom-code .classroom-editable > div > div:nth-child(2) {
+  height: clamp(18rem, 42vh, 28rem);
+}
+.classroom-vocabulary-link {
+  cursor: pointer;
+  text-align: left;
+  border-bottom: 1px dashed var(--color-accent-soft);
+  padding-bottom: 2px;
+}
+.classroom-vocabulary-link[aria-pressed="true"] {
+  color: var(--color-text-primary);
+}
+.classroom-support {
+  position: sticky;
+  top: 1rem;
+}
+.classroom-topic {
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-full);
+  color: var(--color-text-muted);
+  padding: 0.2rem 0.55rem;
+  font-size: 0.7rem;
+}
+.classroom-presenting .classroom-meta {
+  display: none;
+}
+.classroom-presenting .classroom-stages {
+  margin: 0.75rem 0 1rem;
+}
+.classroom-presenting .classroom-workspace {
+  padding: 1rem 1.5rem;
+}
+.classroom-presenting .classroom-support {
+  max-height: calc(100dvh - 150px);
+  overflow-y: auto;
+}
+.classroom-presenting .classroom-columns > section > p:first-child {
+  display: none;
+}
+@media (max-width: 1000px) {
+  .classroom-support {
+    position: static;
+  }
+  .classroom-presenting .classroom-columns {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.classroom-presenting .classroom-stage-actions {
+  display: none;
+}
+.classroom-presenting #stage-title + p {
+  margin: 0.5rem 0;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+.classroom-presenting .classroom-code > div > div:nth-child(2) {
+  max-height: calc(100dvh - 290px);
+  overflow: auto;
+}

@@ -18,7 +18,7 @@ export function SiteHeader() {
 
   // The Daily Challenge workspace renders its own approved top bar (stage
   // stepper + Exit) — see features/challenge/WorkspaceTopBar.tsx.
-  if (pathname === "/daily-challenge") {
+  if (pathname === "/daily-challenge" || pathname.startsWith("/classroom") || pathname.startsWith("/exercises/")) {
     return null;
   }
 

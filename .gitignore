@@ -4,6 +4,7 @@ node_modules/
 .next-run/
 out/
 frontend/next-env.d.ts
+.vercel/
 
 # Python
 .venv/

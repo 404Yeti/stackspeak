@@ -55,11 +55,15 @@ jobs:
         working-directory: backend
       - run: npm ci
         working-directory: frontend
-      - run: npx playwright install --with-deps chromium
+      - run: npx playwright install --with-deps chromium firefox webkit
         working-directory: frontend
       - run: npm run build
         working-directory: frontend
       - run: npm run e2e
+        working-directory: frontend
+      - run: npm run e2e:classroom
+        working-directory: frontend
+      - run: npx playwright test -c playwright.classroom-production.config.ts
         working-directory: frontend
       # Run Code e2e: real Python in the real runner (test build approving the e2e app origin) behind a flag-ON build.
       - run: npm ci --omit=dev && RUNNER_TEST_PARENTS=http://localhost:3000 npm run build:test

@@ -9,7 +9,13 @@ export default defineConfig({
     setupFiles: ["./src/test/setup.ts"],
     globals: true,
     // Playwright specs live in e2e/ and run via `npm run e2e`, not Vitest.
-    exclude: [...configDefaults.exclude, "e2e/**", "e2e-run/**"],
+    exclude: [
+      ...configDefaults.exclude,
+      "e2e/**",
+      "e2e-run/**",
+      "e2e-classroom/**",
+      "e2e-classroom-production/**",
+    ],
     // WSL/9p-mounted filesystems can be too slow to fork test workers in time
     // with the default "forks" pool; threads avoids the fork+exec overhead.
     //

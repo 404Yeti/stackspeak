@@ -1,0 +1,288 @@
+[
+  {
+    "id": "python-loop-accumulator",
+    "slug": "python-loop-accumulator",
+    "version": 1,
+    "title": "Follow the running total",
+    "description": "Read a loop, trace an accumulator, and explain why indentation changes the result.",
+    "language": "Python",
+    "difficulty": "Beginner",
+    "topics": [
+      "loops",
+      "variables",
+      "debugging"
+    ],
+    "tags": [
+      "code reading",
+      "technical English"
+    ],
+    "minutes": 20,
+    "filename": "totals.py",
+    "instructions": "Read the function line by line. Predict its return value for [4, 7, 2] before explaining your reasoning.",
+    "readCode": "def total_points(points):\n    total = 0\n    for point in points:\n        total += point\n    return total\n\nscores = [4, 7, 2]\nprint(total_points(scores))",
+    "vocabulary": [
+      {
+        "term": "accumulator",
+        "definition": "A variable that keeps a running result as a loop progresses.",
+        "example": "The total variable accumulates the points.",
+        "speakingPrompt": "Explain how total changes on each iteration.",
+        "readLines": [
+          2,
+          4
+        ]
+      },
+      {
+        "term": "iteration",
+        "definition": "One pass through the body of a loop.",
+        "example": "On the second iteration, point is 7.",
+        "speakingPrompt": "What happens during the final iteration?",
+        "readLines": [
+          3,
+          4
+        ]
+      },
+      {
+        "term": "indentation",
+        "definition": "Spaces at the start of a line that define a Python code block.",
+        "example": "The indented addition belongs to the loop.",
+        "speakingPrompt": "Describe which block the return belongs to.",
+        "readLines": [
+          3,
+          4,
+          5
+        ]
+      }
+    ],
+    "questions": [
+      {
+        "id": "q1",
+        "prompt": "What is the purpose of total = 0, and when does it run?"
+      },
+      {
+        "id": "q2",
+        "prompt": "How does total change during the loop? What is returned for an empty list?"
+      }
+    ],
+    "fix": {
+      "instructions": "The function stops too early. Find the line responsible, make a correction, and explain how your change affects [4, 7, 2] and [].",
+      "buggyCode": "def total_points(points):\n    total = 0\n    for point in points:\n        total += point\n        return total",
+      "hints": [
+        "Compare the indentation of return in the Read and Fix stages.",
+        "When a function returns, does the loop continue?"
+      ]
+    },
+    "publication": "published",
+    "sharing": "public"
+  },
+  {
+    "id": "python-default-argument",
+    "slug": "python-default-argument",
+    "version": 1,
+    "title": "A list that remembers",
+    "description": "Explain function arguments and debug a mutable default that outlives a single call.",
+    "language": "Python",
+    "difficulty": "Intermediate",
+    "topics": [
+      "functions",
+      "arrays",
+      "debugging"
+    ],
+    "tags": [
+      "code reading",
+      "technical English"
+    ],
+    "minutes": 25,
+    "filename": "labels.py",
+    "instructions": "Compare the two calls. Describe the lifetime of the list created inside this function.",
+    "readCode": "def add_label(label, labels=None):\n    if labels is None:\n        labels = []\n    labels.append(label)\n    return labels\n\nprint(add_label(\"read\"))\nprint(add_label(\"explain\"))",
+    "vocabulary": [
+      {
+        "term": "default argument",
+        "definition": "A value used when a caller leaves out an argument.",
+        "example": "None is the default for labels.",
+        "speakingPrompt": "How is a default different from an argument supplied by the caller?",
+        "readLines": [
+          1,
+          2,
+          3
+        ]
+      },
+      {
+        "term": "mutable",
+        "definition": "Able to change after an object has been created.",
+        "example": "Appending to a list mutates that list.",
+        "speakingPrompt": "Compare changing a list with creating a new list.",
+        "readLines": [
+          3,
+          4
+        ]
+      },
+      {
+        "term": "sentinel",
+        "definition": "A distinguished value used to represent a special condition.",
+        "example": "None signals that no list was supplied.",
+        "speakingPrompt": "Why do we check is None instead of testing whether the list is empty?",
+        "readLines": [
+          1,
+          2
+        ]
+      }
+    ],
+    "questions": [
+      {
+        "id": "q1",
+        "prompt": "When is a new list created in the Read code?"
+      },
+      {
+        "id": "q2",
+        "prompt": "What happens if the caller explicitly passes an empty list?"
+      }
+    ],
+    "fix": {
+      "instructions": "The second call unexpectedly contains a label from the first call. Keep support for a caller-supplied list, but avoid sharing a default list between calls.",
+      "buggyCode": "def add_label(label, labels=[]):\n    labels.append(label)\n    return labels\n\nprint(add_label(\"read\"))\nprint(add_label(\"explain\"))",
+      "hints": [
+        "A Python default expression is evaluated when the function is defined.",
+        "Use a sentinel to distinguish an omitted list from an explicitly supplied empty list."
+      ]
+    },
+    "publication": "published",
+    "sharing": "public"
+  },
+  {
+    "id": "csharp-linq-deferred",
+    "slug": "csharp-linq-deferred",
+    "version": 1,
+    "title": "When does this query run?",
+    "description": "Read a LINQ query and explain deferred execution, snapshots, and changing collections.",
+    "language": "C#",
+    "difficulty": "Intermediate",
+    "topics": [
+      "LINQ",
+      "arrays",
+      "debugging"
+    ],
+    "tags": [
+      "code reading",
+      "technical English"
+    ],
+    "minutes": 25,
+    "filename": "Program.cs",
+    "instructions": "Assume System, System.Collections.Generic, and System.Linq are imported. Predict which values are printed, and explain when filtering happens.",
+    "readCode": "var scores = new List<int> { 4, 7, 9 };\nvar passing = scores.Where(score => score >= 7);\n\nscores.Add(10);\n\nforeach (var score in passing)\n{\n    Console.WriteLine(score);\n}",
+    "vocabulary": [
+      {
+        "term": "predicate",
+        "definition": "A function that returns true or false to decide whether an item matches.",
+        "example": "score => score >= 7 is the filter predicate.",
+        "speakingPrompt": "Explain why 4 does not match the predicate.",
+        "readLines": [
+          2
+        ]
+      },
+      {
+        "term": "deferred execution",
+        "definition": "Waiting until a sequence is enumerated before performing a query.",
+        "example": "Where evaluates the filter when foreach enumerates the query.",
+        "speakingPrompt": "When does the query see the added score?",
+        "readLines": [
+          2,
+          6
+        ]
+      },
+      {
+        "term": "materialize",
+        "definition": "Evaluate a sequence and store its results in a collection.",
+        "example": "ToList materializes the query into a list.",
+        "speakingPrompt": "Contrast a query with a snapshot of its results.",
+        "readLines": [
+          2,
+          4
+        ]
+      }
+    ],
+    "questions": [
+      {
+        "id": "q1",
+        "prompt": "Does Where create a new list immediately?"
+      },
+      {
+        "id": "q2",
+        "prompt": "Why does the added value appear in the output?"
+      }
+    ],
+    "fix": {
+      "instructions": "The report should contain a snapshot of passing scores at the moment the query is declared. Correct the code so later additions do not change that report.",
+      "buggyCode": "var scores = new List<int> { 4, 7, 9 };\nvar report = scores.Where(score => score >= 7);\nscores.Add(10);\n\nforeach (var score in report)\n{\n    Console.WriteLine(score);\n}",
+      "hints": [
+        "A query describes work; enumeration performs it.",
+        "Which LINQ operation materializes the sequence immediately?"
+      ]
+    },
+    "publication": "published",
+    "sharing": "public"
+  },
+  {
+    "id": "csharp-await-task",
+    "slug": "csharp-await-task",
+    "version": 1,
+    "title": "Wait for the work, not the thread",
+    "description": "Discuss async return types and repair a blocking call inside an asynchronous method.",
+    "language": "C#",
+    "difficulty": "Intermediate",
+    "topics": [
+      "async",
+      "APIs",
+      "debugging"
+    ],
+    "tags": [
+      "code reading",
+      "technical English"
+    ],
+    "minutes": 30,
+    "filename": "ProfileService.cs",
+    "instructions": "Assume HttpClient is provided by the application. Explain what happens before and after await, without claiming that await creates a thread.",
+    "readCode": "public async Task<string> LoadProfileAsync(\n    HttpClient client, string url)\n{\n    string json = await client.GetStringAsync(url);\n    return json.Trim();\n}",
+    "vocabulary": [
+      {
+        "term": "task",
+        "definition": "An object representing an operation that may complete in the future.",
+        "example": "GetStringAsync returns a Task<string>.",
+        "speakingPrompt": "How is a task different from its eventual string result?",
+        "readLines": [
+          1,
+          4
+        ]
+      },
+      {
+        "term": "await",
+        "definition": "An expression that waits asynchronously for an awaitable operation to complete.",
+        "example": "await obtains the response without synchronously blocking this method.",
+        "speakingPrompt": "What can the caller do while the operation is incomplete?",
+        "readLines": [
+          4
+        ]
+      }
+    ],
+    "questions": [
+      {
+        "id": "q1",
+        "prompt": "Does await always suspend the method?"
+      },
+      {
+        "id": "q2",
+        "prompt": "Why is Task<string> the return type instead of string?"
+      }
+    ],
+    "fix": {
+      "instructions": "Remove the synchronous wait while preserving the asynchronous method contract. Discuss error handling without adding an empty catch block.",
+      "buggyCode": "public async Task<string> LoadProfileAsync(\n    HttpClient client, string url)\n{\n    string json = client.GetStringAsync(url).Result;\n    return json.Trim();\n}",
+      "hints": [
+        "Result synchronously blocks until completion.",
+        "An await expression can obtain the same result asynchronously."
+      ]
+    },
+    "publication": "draft",
+    "sharing": "private"
+  }
+]
