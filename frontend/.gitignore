@@ -46,6 +46,7 @@ next-env.d.ts
 /playwright-report-run/
 
 /test-results-classroom/
+/test-results-classroom-production/
 # Local private teaching material must live outside this repository.
 /classroom-private/
 *.private.json

@@ -139,6 +139,23 @@ describe("Teacher authentication and authorization", () => {
     );
     expect(validSession(token, now)).toBe(false);
   });
+  it("rejects Preview sessions at the Production origin and revokes sessions on secret rotation", () => {
+    vi.stubEnv("VERCEL", "1");
+    vi.stubEnv("VERCEL_ENV", "preview");
+    vi.stubEnv("CLASSROOM_ORIGIN", "https://classroom-preview.vercel.app");
+    const previewToken = createSession();
+    expect(validSession(previewToken)).toBe(true);
+    vi.stubEnv("VERCEL_ENV", "production");
+    vi.stubEnv("CLASSROOM_ORIGIN", "https://stackspeak.vercel.app");
+    expect(validSession(previewToken)).toBe(false);
+    const productionToken = createSession();
+    expect(validSession(productionToken)).toBe(true);
+    vi.stubEnv("CLASSROOM_SESSION_SECRET", "b".repeat(96));
+    expect(validSession(productionToken)).toBe(false);
+    vi.stubEnv("CLASSROOM_SESSION_SECRET", "");
+    expect(authConfig()).toBeNull();
+    expect(validSession(productionToken)).toBe(false);
+  });
   it("protects guide API before content lookup, uses no-store, and clears cookies on logout", async () => {
     const context = {
       params: Promise.resolve({ slug: "python-loop-accumulator" }),

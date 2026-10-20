@@ -154,6 +154,13 @@ Screenshots: [Library](library.png), [Teacher](teacher-workspace.png),
 [Laptop presentation](presentation-1366x768.png),
 [1080p presentation](presentation-1920x1080.png).
 
+## Production-readiness review
+
+The owner has approved the Preview UX. See the [production security audit and
+gated release plan](production-readiness.md) for fresh test results, required
+Production configuration and approval gates. No Production release/configuration
+change has been made.
+
 ## Preview readiness
 
 The protected candidate is deployed; **authenticated live acceptance is pending**.
