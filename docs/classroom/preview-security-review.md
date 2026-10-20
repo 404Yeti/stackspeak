@@ -1,5 +1,8 @@
 # Classroom preview security review — 2026-10-20
 
+This is the pre-deployment review. See the [subsequent protected deployment
+record](protected-preview-deployment.md) for approved actions and current status.
+
 Status: local remediation verified; **not ready to deploy**. No push, deployment,
 merge, remote secret creation, protection bypass, paid resource, or production
 configuration change occurred. Two platform gates remain below.

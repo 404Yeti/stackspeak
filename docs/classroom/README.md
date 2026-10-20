@@ -1,8 +1,10 @@
 # StackSpeak Classroom — AUD-53
 
-Classroom is a local, working teacher tool on `feat/aud-53-classroom-mvp` in
-`/tmp/stackspeak-classroom`, based on main `21754ef`. Nothing has been pushed,
-merged or deployed. The original AUD-60 checkout and runner are unchanged.
+Classroom is on `feat/aud-53-classroom-mvp` in `/tmp/stackspeak-classroom`,
+based on main `21754ef`. Sanitized commit `1d78336` is pushed and deployed to a
+protected Vercel Preview. Authenticated live acceptance is pending normal Vercel
+SSO browser access. Nothing was merged or deployed to production; the original
+AUD-60 checkout and runner are unchanged.
 
 ## Design and teaching workflow
 
@@ -154,10 +156,14 @@ Screenshots: [Library](library.png), [Teacher](teacher-workspace.png),
 
 ## Preview readiness
 
-**Not approved for deployment yet.** The implementation is tested locally; the
-history cleanup is complete. Remaining gates are activation of the project’s
-first WAF configuration with the reviewed preview-only rule, and creation of
-branch-scoped secrets once Vercel recognizes the unpublished branch. Existing
-deployment protection is retained; effective URL checks require a deployment.
-See [security findings and the concrete preview/rollback plan](preview-security-review.md).
-No production/runner configuration changed. No provider or database was added.
+The protected candidate is deployed; **authenticated live acceptance is pending**.
+See the [deployment record](protected-preview-deployment.md) for exact URLs,
+security evidence, live-test limitations, credentials handoff and rollback.
+
+The approved Preview-only WAF policy is active by configuration, with live 429
+acceptance pending normal SSO access. Three sensitive secrets are configured only
+for the Classroom branch's Preview environment. All anonymous checks on both URLs
+redirect to Vercel SSO. No bypass token or public student access was enabled.
+Production app/runner aliases and production environment entries are unchanged;
+a live production Read → Explain → Fix check confirms Run Code remains OFF.
+No provider or database was added.
