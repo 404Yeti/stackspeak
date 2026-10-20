@@ -1,5 +1,11 @@
 # AUD-53 — Production readiness and gated release plan
 
+**Subsequent approved gate pass:** see
+[Production pre-merge evidence](production-premerge-gates.md) for applied
+configuration, successful CI and live WAF proof. The status below records the
+earlier readiness pass; main merge and Production app deployment still require
+final owner approval.
+
 Status: **local checks pass; Production configuration and live throttle proof are
 pending explicit owner approval. No push, merge, deployment or remote
 configuration change was made during this readiness pass.** Product-owner UX
