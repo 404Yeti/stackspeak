@@ -1,3 +1,5 @@
+import type { ReactNode } from "react";
+
 export type CodeEditorProps = {
   filename: string;
   code: string;
@@ -5,6 +7,8 @@ export type CodeEditorProps = {
   label?: string;
   /** Drop the 640px cap so the editor fills its column (workspace layouts). */
   fullWidth?: boolean;
+  /** Optional escaped React token spans; code remains the line-number source. */
+  highlightedCode?: ReactNode;
 };
 
 /**
@@ -12,7 +16,7 @@ export type CodeEditorProps = {
  * can actually save or run an edit yet — an "Editing" badge over static text
  * would be a fake control, not a shell.
  */
-export function CodeEditor({ filename, code, label = "Read-only", fullWidth = false }: CodeEditorProps) {
+export function CodeEditor({ filename, code, label = "Read-only", fullWidth = false, highlightedCode }: CodeEditorProps) {
   const lines = code.split("\n");
 
   return (
@@ -30,7 +34,7 @@ export function CodeEditor({ filename, code, label = "Read-only", fullWidth = fa
           ))}
         </div>
         <pre className="leading-6 text-text-primary">
-          <code>{code}</code>
+          <code>{highlightedCode ?? code}</code>
         </pre>
       </div>
     </div>

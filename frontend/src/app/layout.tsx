@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { inter, jetbrainsMono } from "@/lib/fonts";
 import { SiteHeader } from "@/components/layout/SiteHeader";
 import { SiteFooter } from "@/components/layout/SiteFooter";
@@ -23,7 +24,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         >
           Skip to main content
         </a>
-        <SiteHeader />
+        <Suspense fallback={null}><SiteHeader /></Suspense>
         <main id="main-content" className="flex-1">
           {children}
         </main>

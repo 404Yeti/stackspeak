@@ -44,3 +44,8 @@ yarn-error.log*
 next-env.d.ts
 /test-results-run/
 /playwright-report-run/
+
+/test-results-classroom/
+# Local private teaching material must live outside this repository.
+/classroom-private/
+*.private.json

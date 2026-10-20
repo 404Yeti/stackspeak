@@ -55,3 +55,14 @@ Until a sandboxed execution service (e.g. a container-per-run model with resourc
 **Stage gating is UX-only.** The challenge API splits content by learning stage (`docs/challenge-schema.md`) so the interface doesn't spoil exercises, but with no auth and no server-side attempt state it is not an access-control or anti-cheating boundary — any stage endpoint can be called directly. Only genuinely private data (`instructor_notes`, `evaluation_guidance`, hidden tests) is protected, by never being part of any response model.
 
 Secrets (API keys, database credentials, provider tokens) live only in backend environment variables, never in a `NEXT_PUBLIC_*` var, never committed, never returned in an API response body.
+
+## Classroom local MVP (AUD-53)
+
+The teacher Classroom feature is a scoped extension using server-only,
+version-controlled content and an explicit student DTO in the existing Next.js
+server. It introduces no database or FastAPI routes. Teacher access is checked at
+the data boundary; anonymous share routes expose only published/public exercise
+fields. A single-owner environment-configured login exists for local review;
+public auth/deployment remain approval gates. See
+[ADR 0005](decisions/0005-classroom-mvp.md) and the
+[Classroom audit, designs and preview plan](classroom/README.md).

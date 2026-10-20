@@ -11,12 +11,14 @@
     "test": "vitest run",
     "e2e": "playwright test",
     "build:run": "NEXT_DIST_DIR=.next-run NEXT_PUBLIC_PYTHON_RUNNER_ENABLED=true NEXT_PUBLIC_PYTHON_RUNNER_URL=http://127.0.0.1:4310 next build",
-    "e2e:run": "playwright test -c playwright.run.config.ts"
+    "e2e:run": "playwright test -c playwright.run.config.ts",
+    "e2e:classroom": "playwright test -c playwright.classroom.config.ts --project=chromium"
   },
   "dependencies": {
     "next": "16.4.1",
     "react": "19.3.0",
-    "react-dom": "19.3.0"
+    "react-dom": "19.3.0",
+    "server-only": "0.0.1"
   },
   "devDependencies": {
     "@playwright/test": "^1.64.1",
