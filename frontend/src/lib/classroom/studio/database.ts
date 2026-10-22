@@ -1,5 +1,6 @@
 import "server-only";
 import postgres from "postgres";
+import { X509Certificate } from "node:crypto";
 import { StudioError } from "./errors";
 
 export type Database = ReturnType<typeof postgres>;
@@ -17,9 +18,11 @@ export function database(role: "reader" | "writer"): Database {
     if (!["postgres:", "postgresql:"].includes(url.protocol) ||
       decodeURIComponent(url.username).split(".")[0] !== `classroom_${role}` ||
       (!local && !url.password)) throw new Error();
-    // TLS certificate verification stays enabled remotely. Never accept sslmode=no-verify.
+    const ca = process.env.CLASSROOM_DATABASE_CA_CERT;
+    if (!local && ca && (ca.length > 64 * 1024 || !new X509Certificate(ca).ca)) throw new Error();
+    // The Supabase pooler uses its own CA. Keep chain AND hostname verification enabled.
     url.search = "";
-    const sql = postgres(url.toString(), { max: 2, prepare: false, ssl: local ? false : { rejectUnauthorized: true },
+    const sql = postgres(url.toString(), { max: 2, prepare: false, ssl: local ? false : { rejectUnauthorized: true, ...(ca ? { ca } : {}) },
       connect_timeout: 5, idle_timeout: 20, max_lifetime: 60 * 5,
       connection: { statement_timeout: 5000, lock_timeout: 3000, application_name: "stackspeak-classroom" },
       onnotice: () => {} });
