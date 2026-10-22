@@ -69,3 +69,29 @@ publishing remains blocked until an independently durable cloud publication adap
 is completed/tested and its configuration separately approved. Do not configure a
 local filesystem recovery directory on Vercel. Full hosted workflow acceptance,
 lesson import, protected deployment and Production cutover remain later gates.
+
+## Approved runtime configuration phase — blocked before mutation
+
+The owner approved restricted runtime LOGIN/password setup and branch-only
+Preview DB secrets. Preflight on 2026-10-22 confirmed both existing roles remain
+NOLOGIN with no superuser/CREATEDB/CREATEROLE/BYPASSRLS. No grant changes needed.
+Postgres supports secure random generation and public-key encryption; SCRAM-SHA-256
+is configured. Password provisioning must keep plaintext out of tool arguments,
+outputs and logs (DDL statement logging is enabled); use a reviewed secure channel,
+not literal passwords in SQL tool requests or shell arguments.
+
+Vercel has no currently connected plugin. Existing local CLI authentication was
+checked without printing its value and returns 403 forbidden / Not authorized for
+user, teams, and project listing, including the previously linked team. The
+original checkout's local project link names stackspeak-runner, so it was not used
+as a destination and was not modified. Correct frontend project identity and
+branch-scope capabilities cannot yet be verified. Connect Vercel or renew CLI
+login for the frontend owner/team, then resume the already authorized phase.
+Do not paste Vercel or database tokens into chat.
+
+No passwords were generated, no role LOGIN flags were changed and no secrets were
+configured. No runtime authenticated connection/permission tests can be claimed.
+Effective grants and prior API-role denial results above remain valid, but actual
+runtime login tests are pending. No push, deployment, lesson import, Production,
+WAF, runner or AUD-60 changes occurred. Deployment approval will be requested only
+after credential configuration and the protected Preview plan are reviewable.
