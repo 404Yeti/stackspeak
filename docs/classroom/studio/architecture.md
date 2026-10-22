@@ -1,5 +1,9 @@
 # Classroom Studio — Phase A (AUD-78)
 
+**Current status:** see [hosted acceptance and final approval plan](hosted-acceptance.md).
+The earlier assessment/results below are historical; Studio now has a configured
+protected Preview using the approved streamlined release mode.
+
 Status: Phase A proposal with approved local increments, 2026-10-22. The original
 assessment below is historical; see the local UI/recovery update at the end and
 [implementation runbook](local-studio.md) for current delivered behavior. No hosted

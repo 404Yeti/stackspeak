@@ -1,0 +1,11 @@
+{
+  "passed": true,
+  "checks": [
+    "new teacher password login and secure session cookie",
+    "authorized teacher guide, anonymous denial, wrong-password denial and CSRF",
+    "three existing student lessons200; private source hidden by legacy not-found UI (soft404 pending Studio release)",
+    "Production Daily Challenge Read Explain Fix; Run Code OFF",
+    "logout clears owner session"
+  ],
+  "timestamp": "2026-10-22T22:28:34.790Z"
+}

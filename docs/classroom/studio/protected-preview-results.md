@@ -1,5 +1,9 @@
 # AUD-78 — Controlled protected Preview sequence (2026-10-22)
 
+**Current status:** see [hosted acceptance and final approval plan](hosted-acceptance.md).
+The earlier assessment/results below are historical; Studio now has a configured
+protected Preview using the approved streamlined release mode.
+
 Status: **stopped on fresh pooler authentication failure**. No configured Studio
 redeployment or full hosted teacher acceptance is claimed.
 

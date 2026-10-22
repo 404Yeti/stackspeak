@@ -1,5 +1,9 @@
 # AUD-78 — Local Studio implementation
 
+**Current status:** see [hosted acceptance and final approval plan](hosted-acceptance.md).
+The earlier assessment/results below are historical; Studio now has a configured
+protected Preview using the approved streamlined release mode.
+
 The teacher library and editor are implemented on `feat/classroom-studio`.
 Existing student lessons remain source-backed by default. Nothing in this
 increment enables production database delivery or code execution.

@@ -45,6 +45,24 @@ describe.skipIf(!enabled)("Studio disposable Postgres integration", () => {
       where rolname in ('classroom_reader','classroom_writer')`;
     expect(roles.every((r) => !r.rolsuper && !r.rolbypassrls && !r.rolcreaterole && !r.rolcreatedb)).toBe(true);
   });
+  it("Production identities inherit only their capability role without SET or ADMIN", async () => {
+    const memberships = await admin`select pg_get_userbyid(roleid) as capability,
+      pg_get_userbyid(member) as login, inherit_option, set_option, admin_option
+      from pg_auth_members where pg_get_userbyid(member) in ('classroom_reader_production','classroom_writer_production')`;
+    expect(memberships).toHaveLength(2);
+    for (const row of memberships) {
+      expect(row.login).toBe(`${row.capability}_production`);
+      expect(row.inherit_option).toBe(true);
+      expect(row.set_option).toBe(false);
+      expect(row.admin_option).toBe(false);
+    }
+    const reader = postgres(process.env.CLASSROOM_DATABASE_READER_URL!, { max: 1 });
+    try {
+      for (const statement of ["set role studio_test_admin", "alter table classroom.published_exercises disable row level security", "create role unexpected_test_role"]) {
+        await expect(reader.unsafe(statement)).rejects.toMatchObject({ code: "42501" });
+      }
+    } finally { await reader.end(); }
+  });
   it("persists drafts and vocabulary across connections and isolates guides and public snapshots", async () => {
     const created = await createExercise("Python", "Test lesson");
     expect(created.publication).toBe("draft");

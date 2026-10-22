@@ -29,7 +29,7 @@ export async function importCatalog(input: unknown, privateInput: unknown | unde
   const exercises = parseExercises(input);
   if (privateInput !== undefined && Buffer.byteLength(JSON.stringify(privateInput)) > 48 * 1024) throw new Error("Guide import is too large");
   const guides = privateInput === undefined ? {} : parseGuides(privateInput, exercises);
-  const sql = database("writer");
+  const sql = await database("writer");
   const run = async (ledger?: Parameters<Parameters<typeof withPublicationLedger>[0]>[0]) => {
     const activate: ReturnType<typeof projectStudent>[] = [];
     const report = await sql.begin(async (tx) => {

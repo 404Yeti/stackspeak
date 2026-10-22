@@ -62,3 +62,8 @@ secret, storage charge or Production cutover is authorized by this document.
 PR11 remains unmerged during Preview acceptance. One final owner approval must
 cover Production configuration, merge and deployment. Preserve existing teacher
 authentication, WAF and runner flags; do not import legacy lessons or enable Run Code.
+
+The separately approved teacher password rotation is now live on the same stable
+main15ca578 code. For the future Studio release, retain
+`dpl_EcPQjoayATtdRCTUVwcasSkf6YWX` as the immediate rollback target so the new
+known teacher password remains usable; see [rotation evidence](production-teacher-rotation.md).

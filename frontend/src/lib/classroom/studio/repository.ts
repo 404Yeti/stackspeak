@@ -54,7 +54,7 @@ export const libraryQuerySchema = z.strictObject({
 export async function listExercises(query: unknown) {
   await authorizeTeacher();
   const q = libraryQuerySchema.parse(query);
-  const sql = database("writer");
+  const sql = await database("writer");
   // Offset paging is sufficient for the bounded single-owner library. Values are always parameters.
   const rows = await sql`select id, slug, content->>'title' as title, content->>'language' as language,
     content->>'difficulty' as difficulty, content->>'topic' as topic, publication,
@@ -71,14 +71,14 @@ export async function listExercises(query: unknown) {
 export async function createExercise(language: "Python" | "C#", title = "") {
   await authorizeTeacher();
   const draft = draftSchema.parse(emptyDraft(language, title));
-  const sql = database("writer");
+  const sql = await database("writer");
   // IDs and collision-free stable slugs are generated in Postgres, never accepted from a client.
   const rows = await sql`insert into classroom.exercises (content) values (${sql.json(draft.content)}) returning id, slug`;
   return getExercise(rows[0].id);
 }
 export async function getExercise(id: string) {
   await authorizeTeacher();
-  return database("writer").begin(async (tx) => {
+  return (await database("writer")).begin(async (tx) => {
     const row = await locked(tx, id);
     const draft = await draftFor(tx, row);
     return { ...metadata(row, draft), draft };
@@ -87,7 +87,7 @@ export async function getExercise(id: string) {
 export async function saveDraft(id: string, expectedVersion: number, input: Draft) {
   await authorizeTeacher();
   const draft = draftSchema.parse(input);
-  return database("writer").begin(async (tx) => {
+  return (await database("writer")).begin(async (tx) => {
     const row = await locked(tx, id, expectedVersion);
     await tx`update classroom.exercises set content = ${tx.json(draft.content)} where id = ${row.id}`;
     await replaceVocabulary(tx, row.id, draft);
@@ -96,7 +96,7 @@ export async function saveDraft(id: string, expectedVersion: number, input: Draf
 }
 export async function getGuide(id: string) {
   await authorizeTeacher();
-  return database("writer").begin(async (tx) => {
+  return (await database("writer")).begin(async (tx) => {
     const row = await locked(tx, id);
     const guides = await tx`select content from classroom.teacher_guides where exercise_id = ${row.id}`;
     return { lockVersion: row.lock_version, guide: guides[0] ? guideSchema.parse(guides[0].content) : null };
@@ -105,7 +105,7 @@ export async function getGuide(id: string) {
 export async function saveGuide(id: string, expectedVersion: number, input: Guide) {
   await authorizeTeacher();
   const guide = guideSchema.parse(input);
-  return database("writer").begin(async (tx) => {
+  return (await database("writer")).begin(async (tx) => {
     const row = await locked(tx, id, expectedVersion);
     if (guide.answers.some((a) => !row.content.questions.some((q) => q.id === a.questionId)))
       throw new StudioError(422, "Guide answers must reference current questions.");
@@ -116,7 +116,7 @@ export async function saveGuide(id: string, expectedVersion: number, input: Guid
 }
 export async function previewExercise(id: string) {
   await authorizeTeacher();
-  return database("writer").begin(async (tx) => {
+  return (await database("writer")).begin(async (tx) => {
     const row = await locked(tx, id);
     return projectStudent(row.legacy_id ?? row.id, row.slug, Math.max(1, row.version), await draftFor(tx, row));
   });
@@ -125,7 +125,7 @@ export async function publishExercise(id: string, expectedVersion: number) {
   await authorizeTeacher();
   const commit = async (ledger?: PublicationLedger) => {
     let published;
-    const result = await database("writer").begin(async (tx) => {
+    const result = await (await database("writer")).begin(async (tx) => {
       const row = await locked(tx, id, expectedVersion);
       if (!ledger && reservedSourceSlug(row.slug)) throw new StudioError(409, "Existing source lessons remain in the teaching library until migration.");
       const draft = await draftFor(tx, row);
@@ -155,7 +155,7 @@ export async function publishExercise(id: string, expectedVersion: number) {
 }
 export async function unpublishExercise(id: string, expectedVersion: number) {
   await authorizeTeacher();
-  const commit = async (ledger?: PublicationLedger) => database("writer").begin(async (tx) => {
+  const commit = async (ledger?: PublicationLedger) => (await database("writer")).begin(async (tx) => {
     const row = await locked(tx, id, expectedVersion);
     if (!ledger && reservedSourceSlug(row.slug)) throw new StudioError(409, "Existing source lessons remain in the teaching library until migration.");
     await ledger?.deny(row.slug); // database-only mode removes visibility with the SQL commit
@@ -167,7 +167,7 @@ export async function unpublishExercise(id: string, expectedVersion: number) {
 }
 export async function deleteExercise(id: string, expectedVersion: number) {
   await authorizeTeacher();
-  return database("writer").begin(async (tx) => {
+  return (await database("writer")).begin(async (tx) => {
     const row = await locked(tx, id, expectedVersion);
     if (row.publication === "published") throw new StudioError(409, "Unpublish before deleting.");
     await tx`delete from classroom.exercises where id = ${row.id}`;
@@ -176,7 +176,7 @@ export async function deleteExercise(id: string, expectedVersion: number) {
 }
 export async function duplicateExercise(id: string, expectedVersion: number) {
   await authorizeTeacher();
-  return database("writer").begin(async (tx) => {
+  return (await database("writer")).begin(async (tx) => {
     const row = await locked(tx, id, expectedVersion);
     const draft = await draftFor(tx, row);
     draft.content.title = `${draft.content.title.slice(0, 193)} (copy)`;
@@ -196,7 +196,7 @@ export async function publishedExercise(slug: string) {
   if (!recovery) return null;
   if (process.env.CLASSROOM_CONTENT_SOURCE === "recovery") return recovery.exercise;
   let rows;
-  try { rows = await database("reader")`select student_payload from classroom.published_exercises where slug = ${slug}`; }
+  try { rows = await (await database("reader"))`select student_payload from classroom.published_exercises where slug = ${slug}`; }
   catch { return recovery.exercise; } // committed public-only snapshot; never source fallback
   if (!rows[0]) throw new StudioError(503, "Publication storage is inconsistent.");
   const payload = studentSchema.parse(rows[0].student_payload);

@@ -1,0 +1,24 @@
+{
+  "checks": [
+    "unauthorized teacher API and cross-origin login rejected",
+    "teacher login, protected cookie and mutation CSRF",
+    "creation, edit, debounced autosave and refresh persistence",
+    "draft links404 and private APIs require owner session",
+    "vocabulary entry and noncontiguous line highlighting",
+    "separate private guide save and public-only actual student preview",
+    "publish, anonymous application link, public API isolation and draft snapshot stability",
+    "republish snapshot and genuine revoked HTML/API404",
+    "duplicate remains private and preserves owner guide",
+    "C# published student rendering",
+    "legacy lessons, private source404, Daily Challenge loads with runner OFF, mobile layout"
+  ],
+  "ids": [
+    "c0656c9a-6f71-48b9-8ca1-a368d546b75f",
+    "f33c5649-dfc8-40f0-8bca-808993d94d27"
+  ],
+  "revokedPath": "/exercises/lesson-c4af39cf-ffe9-4451-8f2a-53f73cc0d6b2",
+  "revokedSlug": "lesson-c4af39cf-ffe9-4451-8f2a-53f73cc0d6b2",
+  "livePath": "/exercises/lesson-cf3eadc4-b6cf-4f88-9cbc-f8e12a3d0a94",
+  "liveSlug": "lesson-cf3eadc4-b6cf-4f88-9cbc-f8e12a3d0a94",
+  "passed": true
+}

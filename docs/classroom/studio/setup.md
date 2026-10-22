@@ -4,13 +4,11 @@
 uses explicit `studio` mode with atomic SQL publication and fail-closed outages.
 Earlier cloud-recovery release gates below are superseded for this mode.
 
-**Latest infrastructure direction:** use owner-created project
-`hljdwcwvtbozzpplssxw`; do not create resources. The connected integration currently
-lacks access. See [existing-project review and conditional plan](existing-project-review.md).
-Earlier provisioning proposals below are historical and superseded.
-
-This is the database/API foundation on `feat/classroom-studio`, not a finished
-Studio UI or a deployed feature. No remote Supabase project is connected.
+**Current infrastructure and acceptance:** the owner-created Seoul project
+`hljdwcwvtbozzpplssxw` is connected through restricted roles. See
+[hosted acceptance and final approval plan](hosted-acceptance.md). Production is
+unchanged and release awaits approval. Everything below this notice is historical
+planning or local test evidence, superseded where the current plan differs.
 
 ## Infrastructure proposal for approval
 

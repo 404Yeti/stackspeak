@@ -1,0 +1,69 @@
+{
+  "passed": true,
+  "events": [
+    {
+      "utc": "2026-10-22T22:42:06.473Z",
+      "role": "classroom_reader_production",
+      "elapsed_seconds": 1.1,
+      "sqlstate": "00000",
+      "outcome": "authenticated identity verified"
+    },
+    {
+      "utc": "2026-10-22T22:42:08.574Z",
+      "role": "classroom_reader_production",
+      "elapsed_seconds": 3.2,
+      "sqlstate": "00000",
+      "outcome": "authenticated identity verified"
+    },
+    {
+      "utc": "2026-10-22T22:42:09.702Z",
+      "role": "classroom_writer_production",
+      "elapsed_seconds": 1,
+      "sqlstate": "00000",
+      "outcome": "authenticated identity verified"
+    },
+    {
+      "utc": "2026-10-22T22:42:12.056Z",
+      "role": "classroom_writer_production",
+      "elapsed_seconds": 3.4,
+      "sqlstate": "00000",
+      "outcome": "authenticated identity verified"
+    },
+    {
+      "utc": "2026-10-22T22:42:22.190Z",
+      "role": "classroom_reader_production",
+      "outcome": "permission checks passed"
+    },
+    {
+      "utc": "2026-10-22T22:42:36.426Z",
+      "role": "classroom_writer_production",
+      "outcome": "permission checks passed"
+    }
+  ],
+  "results": [
+    "denied: set role postgres",
+    "denied: set role classroom_reader",
+    "denied: create role unexpected_studio_role",
+    "denied: alter role classroom_reader_production superuser",
+    "denied: alter table classroom.published_exercises disable",
+    "denied: create table classroom.unexpected_studio_table(id int)",
+    "denied: truncate classroom.published_exercises",
+    "denied: select * from classroom.published_exercises",
+    "denied: select * from classroom.exercises",
+    "denied: select * from classroom.vocabulary",
+    "denied: select * from classroom.teacher_guides",
+    "denied: delete from classroom.published_exercises",
+    "reader published-only SELECT and private draft/guide denial verified",
+    "classroom_reader_production: exact capability matrix, membership restrictions and FORCE RLS verified",
+    "denied: set role postgres",
+    "denied: set role classroom_writer",
+    "denied: create role unexpected_studio_role",
+    "denied: alter role classroom_writer_production superuser",
+    "denied: alter table classroom.published_exercises disable",
+    "denied: create table classroom.unexpected_studio_table(id int)",
+    "denied: truncate classroom.published_exercises",
+    "denied: select * from classroom.published_exercises",
+    "writer draft/vocabulary/private-guide CRUD and publish/revoke passed; synthetic transaction rolled back",
+    "classroom_writer_production: exact capability matrix, membership restrictions and FORCE RLS verified"
+  ]
+}

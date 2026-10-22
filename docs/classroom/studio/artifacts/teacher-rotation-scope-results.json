@@ -1,0 +1,12 @@
+{
+  "passed": true,
+  "only_production_password_hash_updated": true,
+  "all_preview_env_metadata_unchanged": true,
+  "session_origin_guides_unchanged": true,
+  "protection_unchanged": true,
+  "runner_off": true,
+  "production_deployment": "dpl_EcPQjoayATtdRCTUVwcasSkf6YWX",
+  "production_sha": "15ca578a39ffcb8b2ba69f037448a2348507a738",
+  "vault_target": "StackSpeak/Classroom/Production/Teacher",
+  "plaintext_password_file_created": false
+}
