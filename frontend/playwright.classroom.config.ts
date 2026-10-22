@@ -41,6 +41,8 @@ export default defineConfig({
       CLASSROOM_SESSION_SECRET: randomBytes(48).toString("hex"),
       CLASSROOM_ORIGIN: "http://localhost:3001",
       CLASSROOM_GUIDES_JSON: JSON.stringify(guides),
+      CLASSROOM_DATABASE_READER_URL: "",
+      CLASSROOM_DATABASE_WRITER_URL: "",
     },
   },
 });
