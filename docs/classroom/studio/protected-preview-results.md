@@ -91,3 +91,8 @@ lesson import, WAF, runner or AUD-60 change. Draft PR remains open. Diagnosis of
 fresh credential/pooler authentication is the next blocker; resume only after
 addressing this stop condition. Existing approvals do not permit weakening TLS,
 broadening database roles or exposing Preview publicly.
+
+Follow-up read-only investigation: see [pooler diagnosis and proposed isolated test](pooler-auth-diagnosis.md)
+and [durable cloud recovery implementation plan](cloud-recovery-plan.md). Custom
+LOGIN role support is documented; rotation-related pooler credential state is the
+leading unconfirmed diagnosis. No further credentials or deployments were created.
