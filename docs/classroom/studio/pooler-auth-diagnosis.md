@@ -137,3 +137,12 @@ review a paid direct IPv4/dedicated-pooler option with separate cost approval.
 Direct/dedicated endpoints avoid the documented shared-pooler credential-cache
 behavior. Do not assume the endpoint/network exists or provision it now. No
 architecture replacement is currently justified by the evidence.
+
+## Approved experiment completed
+
+The reader-only experiment now reproduced first-attempt28P01 followed by successful
+same-password connection at20seconds and successful confirmation. See
+[isolated test results and cleanup evidence](reader-auth-test-results.md). This
+supports delayed pooler credential synchronization; it does not prove a specific
+internal cache mechanism. Both roles are NOLOGIN/passwordNULL again; no Preview
+configuration or deployment was performed. Next phase requires separate approval.
