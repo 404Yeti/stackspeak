@@ -166,3 +166,60 @@ above. Credential enablement, Preview secrets, import and deployment remain
 separate approvals. Existing lessons stay source-backed. The independent cloud
 recovery adapter remains required before hosted publishing/database cutover.
 No remote mutations or local application changes were made in this inspection.
+
+## Migration readiness review — region accepted, Data API confirmation pending
+
+The owner accepted the existing Seoul region. Do not create a replacement project.
+Enable Data API OFF is still awaiting owner confirmation; no setting was changed.
+The two migration files were reread in full and their SHA-256 values recomputed;
+both exactly match the previously reviewed hashes. This is a static review, not
+remote execution or a new permission test.
+
+Apply order and expected final objects (only after explicit approval):
+
+1. `20261022064757_classroom_studio.sql`: creates two restricted NOLOGIN roles,
+   private schema `classroom`, four tables (exercises, vocabulary, teacher_guides,
+   published_exercises), four security-invoker functions (keys_allowed,
+   safe_student, protect_exercise, check_publication), three triggers
+   (exercise_identity, exercise_publication, snapshot_publication), five RLS
+   policies (writer on each table, published_reader on snapshots), one explicit
+   library index, and implicit primary/unique indexes. Adds UUID/default/timestamp,
+   identity, payload-size/key, language/difficulty, slug, ordering, foreign-key,
+   uniqueness and publication-consistency constraints. Applies explicit schema/
+   table/function grants and revokes, default privilege restrictions, ENABLE and
+   FORCE RLS on all four tables. No SECURITY DEFINER functions or public RPC.
+2. `20261022073257_classroom_studio_incomplete_vocabulary.sql`: drops the original
+   generated `vocabulary_entry_check3` minimum-term-length constraint and adds
+   named `vocabulary_term_length` limiting terms to 120 characters. The original
+   draft field-key checks remain; complete vocabulary is enforced by server
+   publication validation. Adds no tables, roles or data.
+
+This matches the approved separate draft/student snapshot model, server-only
+private guide model, stable published identity and existing authentication.
+Database checks are defense in depth; detailed JSON validation, teacher session/
+CSRF authorization and publish completeness remain application responsibilities.
+No migration imports content, enables LOGIN, sets passwords, configures Data API,
+changes public/storage grants, selects student delivery mode or deploys code.
+
+Run each recorded migration transactionally. Immediately before execution recheck
+the target ref and collisions/history to account for drift. Verify expected
+objects, FORCE RLS, role memberships and effective denial for API roles/reader
+against drafts and guides after execution, without exposing private content.
+Do not connect Preview before the separate runtime credential/secrets approval.
+
+Rollback: if a migration fails inside its transaction, abort it and verify no
+partial objects/history were committed. If the first migration succeeded and the
+second fails, retain the first (the stricter draft constraint is safe), stop and
+review; do not reset/reapply blindly. After successful schema creation, keep the
+schema/data and leave the application source-backed while preparing a reviewed
+forward correction. Do not execute `supabase/tests/rollback.sql` remotely: it
+CASCADE-drops the schema and roles and exists solely for disposable local tests.
+Any later teardown would require a separate approved object inventory, backup,
+dependency check and explicit destructive authorization. No cloud recovery adapter
+is required merely to install an unused private schema; that adapter must be
+complete and tested before hosted publishing or database-backed student cutover.
+
+Pending approvals are distinct: owner confirmation Data API OFF; explicit apply
+approval for these two exact files on hljdwcwvtbozzpplssxw; later runtime role login/
+credentials and branch-scoped Preview secrets; later protected Preview deployment.
+Production, WAF, runner and source-backed published lessons remain unchanged.
