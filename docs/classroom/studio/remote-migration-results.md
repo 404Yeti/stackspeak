@@ -95,3 +95,27 @@ Effective grants and prior API-role denial results above remain valid, but actua
 runtime login tests are pending. No push, deployment, lesson import, Production,
 WAF, runner or AUD-60 changes occurred. Deployment approval will be requested only
 after credential configuration and the protected Preview plan are reviewable.
+
+## Vercel authentication restored — pooler endpoint pending
+
+The restored WSL Vercel credential authenticates as 404yeti and sees team
+robert-leybas-projects (`team_NiPR0mQIdJXiXOnCbNEqb09K`). Verified frontend project
+`stackspeak` (`prj_BlU64KE3PavF6PiLRnMCyyfc5UVL`), Next.js, root frontend,
+404Yeti/stackspeak repository, main production branch. Existing deployment
+protection is all_except_custom_domains and was not modified. No existing
+feat/classroom-studio DB or authentication env variables were found. Existing
+Production/other-branch metadata was snapshotted without values for later scope
+comparison; no secrets were fetched/decrypted from those environments.
+
+Supabase identity/restricted NOLOGIN flags and FORCE RLS were rechecked; the
+Classroom tables remain empty. The direct db endpoint cannot be reached from this
+WSL network. The connector provides no project pooler-configuration read method.
+Owner has been asked for the non-secret Transaction pooler hostname from the
+project's Connect dialog. Do not guess a regional pooler hostname or generate
+passwords until the endpoint is verified. No new credentials/LOGIN flags/env
+variables have been created yet.
+
+Prepared private temporary encrypted-transport tooling and rollback-only runtime
+permission probes (syntax checked). Runtime login and write tests have not run.
+Existing approval remains valid; resume at endpoint verification when supplied.
+No push/deploy/import/Production/WAF/runner/AUD-60 changes.
