@@ -121,3 +121,48 @@ hosted workflow acceptance waits for the cloud recovery adapter; Production
 cutover, merge, deployment and live data import remain separate gates.
 
 Reference: [Supabase Data API grants, RLS and disabling the API](https://supabase.com/docs/guides/api/securing-your-api).
+
+## Successful reconnection — read-only verification (2026-10-22)
+
+This section supersedes the access-blocked result above. Project lookup and SQL
+now succeed. Project `stackspeak`, ref `hljdwcwvtbozzpplssxw`, belongs to
+`Stackspeak` (`wvldylznneaykkaomxxf`), plan Free (`tier_free`). Status is
+ACTIVE_HEALTHY, Postgres 17.11 (platform 17.11.0.003). Actual region is Seoul,
+`ap-northeast-2`, **not** the proposed Singapore `ap-southeast-1`. No region change
+or new resources are proposed without approval; owner acceptance of this
+architecture difference is pending.
+
+Catalog inspection found standard Supabase schemas (auth/storage/realtime/vault/
+extensions/graphql/public), no application relations, no classroom schema and no
+classroom_reader/writer roles. Project migration history is empty. This establishes
+no detected application-schema conflict; built-in schemas contain platform
+objects/migration records and their user data was not read. The database is not
+literally empty, and catalog row estimates are not proof that all platform tables
+contain zero records.
+
+The inspection connection is postgres/session postgres, reports CREATEROLE=true
+and database CREATE=true. These are suitable prerequisite privileges for the
+reviewed schema/role migration; no DDL permission was exercised and hosted DDL
+success is not yet proven. Runtime credential/login availability remains untested.
+Existing postgres default grants apply to public/storage, not globally or to the
+new classroom schema. The migration's private-schema revokes and FORCE RLS remain
+compatible. No changes to public/storage defaults are included or needed for this
+private schema.
+
+Data API enablement/exposed-schema management configuration is **still unknown**:
+this connector has no settings-read tool and SQL returned no pgrst role settings.
+No-key REST probe returned 401 No API key found. Read-only probes using the
+connector-returned public key metadata returned 401 (Secret API key required /
+Invalid API key). None establishes disabled Data API. Key values were not printed,
+committed, configured or created; no secret/service-role keys were requested.
+Owner should inspect the target project's Data API integration overview and
+settings and confirm Enable Data API is OFF and classroom is not exposed. Do not
+change it under this read-only authorization.
+
+**Readiness:** schema-compatible candidate with required operator privileges;
+first remote migration remains gated on region acceptance, Data API configuration
+confirmation, and explicit approval of the two exact migration files listed
+above. Credential enablement, Preview secrets, import and deployment remain
+separate approvals. Existing lessons stay source-backed. The independent cloud
+recovery adapter remains required before hosted publishing/database cutover.
+No remote mutations or local application changes were made in this inspection.
