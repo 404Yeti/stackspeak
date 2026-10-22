@@ -1,5 +1,10 @@
 # Classroom Studio local foundation — AUD-78
 
+**Latest infrastructure direction:** use owner-created project
+`hljdwcwvtbozzpplssxw`; do not create resources. The connected integration currently
+lacks access. See [existing-project review and conditional plan](existing-project-review.md).
+Earlier provisioning proposals below are historical and superseded.
+
 This is the database/API foundation on `feat/classroom-studio`, not a finished
 Studio UI or a deployed feature. No remote Supabase project is connected.
 
