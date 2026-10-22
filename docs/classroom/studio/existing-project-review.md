@@ -223,3 +223,10 @@ Pending approvals are distinct: owner confirmation Data API OFF; explicit apply
 approval for these two exact files on hljdwcwvtbozzpplssxw; later runtime role login/
 credentials and branch-scoped Preview secrets; later protected Preview deployment.
 Production, WAF, runner and source-backed published lessons remain unchanged.
+
+## Remote application completed
+
+Following explicit owner approval, both reviewed migrations were applied on
+2026-10-22. See [execution results, security verification and history mapping](remote-migration-results.md).
+Earlier pending-migration statuses above are historical. Preview runtime logins,
+secrets, import, deployment and cutover remain unapproved.
