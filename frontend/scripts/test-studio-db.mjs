@@ -47,7 +47,7 @@ try {
     if (imported.exercises.length !== 4) throw new Error("Expected four legacy exercises");
     const repeated = JSON.parse(run(process.execPath, [...cliArgs, "--apply"], testEnv));
     if (repeated.exercises.some((e) => e.action !== "skip")) throw new Error("Import idempotency failed");
-    console.log(run(resolve(root, "frontend/node_modules/.bin/playwright"), ["test", "-c", "playwright.studio-api.config.ts", "--project=chromium", "--project=firefox"], testEnv));
+    console.log(run(resolve(root, "frontend/node_modules/.bin/playwright"), ["test", "-c", "playwright.studio-api.config.ts", "--project=chromium", ...(process.env.CLASSROOM_TEST_STUDIO_MODE === "studio" ? [] : ["--project=firefox"])], testEnv));
   }
   query(readFileSync(join(root, "supabase/tests/rollback.sql"), "utf8"));
   apply();

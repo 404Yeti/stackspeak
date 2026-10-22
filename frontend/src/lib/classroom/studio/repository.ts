@@ -3,7 +3,8 @@ import { createHash } from "node:crypto";
 import { z } from "zod";
 import { authorizeTeacher } from "./authorization";
 import { database, type Transaction } from "./database";
-import { withPublicationLedger, recoverySnapshot, publicChecksum } from "./recovery";
+import { withPublicationLedger, recoverySnapshot, publicChecksum, type PublicationLedger } from "./recovery";
+import { currentStudentSnapshot, reservedSourceSlug, validateSnapshotTransport } from "./publicationSnapshot";
 import { StudioError } from "./errors";
 import { contentSchema, draftSchema, guideSchema, idSchema, slugSchema, studentSchema,
   projectStudent, validatePublish, emptyDraft, type Draft, type Guide } from "./validation";
@@ -122,10 +123,11 @@ export async function previewExercise(id: string) {
 }
 export async function publishExercise(id: string, expectedVersion: number) {
   await authorizeTeacher();
-  return withPublicationLedger(async (ledger) => {
+  const commit = async (ledger?: PublicationLedger) => {
     let published;
     const result = await database("writer").begin(async (tx) => {
       const row = await locked(tx, id, expectedVersion);
+      if (!ledger && reservedSourceSlug(row.slug)) throw new StudioError(409, "Existing source lessons remain in the teaching library until migration.");
       const draft = await draftFor(tx, row);
       validatePublish(draft);
       const guides = await tx`select content from classroom.teacher_guides where exercise_id = ${row.id}`;
@@ -133,7 +135,8 @@ export async function publishExercise(id: string, expectedVersion: number) {
         throw new StudioError(422, "Update the teacher guide for removed questions before publishing.");
       const version = row.version + 1;
       const payload = projectStudent(row.legacy_id ?? row.id, row.slug, version, draft);
-      await ledger.deny(row.slug); // durable before ANY public database mutation
+      if (!ledger) validateSnapshotTransport(payload);
+      await ledger?.deny(row.slug); // independent journal only in recovery-backed mode
       await tx`insert into classroom.published_exercises (exercise_id, slug, student_payload, version)
         values (${row.id}, ${row.slug}, ${tx.json(payload)}, ${version})
         on conflict (exercise_id) do update set student_payload = excluded.student_payload,
@@ -145,19 +148,22 @@ export async function publishExercise(id: string, expectedVersion: number) {
       return { lockVersion: await touch(tx, row.id), studentPath: `/exercises/${row.slug}`, version };
     });
     if (!published) throw new Error("Publication failed");
-    await ledger.activate(published); // after acknowledged DB commit; failure leaves a durable deny
+    await ledger?.activate(published); // database-only mode publishes atomically in SQL, with no fallback
     return result;
-  });
+  };
+  return process.env.CLASSROOM_CONTENT_SOURCE === "studio" ? commit() : withPublicationLedger(commit);
 }
 export async function unpublishExercise(id: string, expectedVersion: number) {
   await authorizeTeacher();
-  return withPublicationLedger(async (ledger) => database("writer").begin(async (tx) => {
+  const commit = async (ledger?: PublicationLedger) => database("writer").begin(async (tx) => {
     const row = await locked(tx, id, expectedVersion);
-    await ledger.deny(row.slug); // tombstone also applies during DB outage or failed transaction
+    if (!ledger && reservedSourceSlug(row.slug)) throw new StudioError(409, "Existing source lessons remain in the teaching library until migration.");
+    await ledger?.deny(row.slug); // database-only mode removes visibility with the SQL commit
     await tx`delete from classroom.published_exercises where exercise_id = ${row.id}`;
     await tx`update classroom.exercises set publication = 'draft', published_checksum = null where id = ${row.id}`;
     return { lockVersion: await touch(tx, row.id) };
-  }));
+  });
+  return process.env.CLASSROOM_CONTENT_SOURCE === "studio" ? commit() : withPublicationLedger(commit);
 }
 export async function deleteExercise(id: string, expectedVersion: number) {
   await authorizeTeacher();
@@ -184,6 +190,8 @@ export async function duplicateExercise(id: string, expectedVersion: number) {
 }
 // The independent journal governs public visibility, including during database failures.
 export async function publishedExercise(slug: string) {
+  slugSchema.parse(slug);
+  if (process.env.CLASSROOM_CONTENT_SOURCE === "studio") return currentStudentSnapshot(slug);
   const recovery = await recoverySnapshot(slugSchema.parse(slug));
   if (!recovery) return null;
   if (process.env.CLASSROOM_CONTENT_SOURCE === "recovery") return recovery.exercise;

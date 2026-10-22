@@ -1,5 +1,9 @@
 # Classroom Studio local foundation — AUD-78
 
+**Accelerated release direction:** [streamlined release and rollback](streamlined-release.md)
+uses explicit `studio` mode with atomic SQL publication and fail-closed outages.
+Earlier cloud-recovery release gates below are superseded for this mode.
+
 **Latest infrastructure direction:** use owner-created project
 `hljdwcwvtbozzpplssxw`; do not create resources. The connected integration currently
 lacks access. See [existing-project review and conditional plan](existing-project-review.md).

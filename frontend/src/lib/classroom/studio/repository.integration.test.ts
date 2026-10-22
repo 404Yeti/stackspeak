@@ -168,4 +168,31 @@ describe.skipIf(!enabled)("Studio disposable Postgres integration", () => {
     expect(await publishedExercise(e.slug)).toBeNull();
   });
 
+  it("publishes atomically in studio mode, keeps private edits isolated, and fails closed on outage after revocation", async () => {
+    const source = process.env.CLASSROOM_CONTENT_SOURCE;
+    const reader = process.env.CLASSROOM_DATABASE_READER_URL!;
+    process.env.CLASSROOM_CONTENT_SOURCE = "studio";
+    try {
+      const e = await createExercise("Python", "Database authoritative lesson");
+      const saved = await saveDraft(e.id, e.lockVersion, publishableDraft());
+      const guided = await saveGuide(e.id, saved.lockVersion, syntheticGuide());
+      const live = await publishExercise(e.id, guided.lockVersion);
+      expect(JSON.stringify(await publishedExercise(e.slug))).not.toContain("PRIVATE_CANARY");
+      const draft = publishableDraft(); draft.content.title = "Unpublished edit";
+      const edited = await saveDraft(e.id, live.lockVersion, draft);
+      expect((await publishedExercise(e.slug))?.title).not.toBe("Unpublished edit");
+      await unpublishExercise(e.id, edited.lockVersion);
+      expect(await publishedExercise(e.slug)).toBeNull();
+      await closeDatabases();
+      process.env.CLASSROOM_DATABASE_READER_URL = "postgres://classroom_reader@127.0.0.1:1/postgres";
+      await expect(publishedExercise(e.slug)).rejects.toThrow();
+      expect((await publishedExercise("python-loop-accumulator"))?.language).toBe("Python");
+      expect(await publishedExercise("csharp-await-task")).toBeNull();
+      await closeDatabases(); process.env.CLASSROOM_DATABASE_READER_URL = reader;
+      expect(await publishedExercise(e.slug)).toBeNull();
+    } finally {
+      await closeDatabases(); process.env.CLASSROOM_DATABASE_READER_URL = reader; process.env.CLASSROOM_CONTENT_SOURCE = source;
+    }
+  });
+
 });
