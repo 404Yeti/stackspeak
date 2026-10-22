@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 import { z } from "zod";
 import { authorizeTeacher } from "./authorization";
 import { database, type Transaction } from "./database";
+import { withPublicationLedger, recoverySnapshot, publicChecksum } from "./recovery";
 import { StudioError } from "./errors";
 import { contentSchema, draftSchema, guideSchema, idSchema, slugSchema, studentSchema,
   projectStudent, validatePublish, emptyDraft, type Draft, type Guide } from "./validation";
@@ -121,30 +122,42 @@ export async function previewExercise(id: string) {
 }
 export async function publishExercise(id: string, expectedVersion: number) {
   await authorizeTeacher();
-  return database("writer").begin(async (tx) => {
-    const row = await locked(tx, id, expectedVersion);
-    const draft = await draftFor(tx, row);
-    validatePublish(draft);
-    const version = row.version + 1;
-    const payload = projectStudent(row.legacy_id ?? row.id, row.slug, version, draft);
-    await tx`insert into classroom.published_exercises (exercise_id, slug, student_payload, version)
-      values (${row.id}, ${row.slug}, ${tx.json(payload)}, ${version})
-      on conflict (exercise_id) do update set student_payload = excluded.student_payload,
-      version = excluded.version, published_at = now()`;
-    await tx`update classroom.exercises set publication = 'published', version = ${version},
-      published_checksum = ${checksum(draft)}, published_at = now(), first_published_at = coalesce(first_published_at, now())
-      where id = ${row.id}`;
-    return { lockVersion: await touch(tx, row.id), studentPath: `/exercises/${row.slug}`, version };
+  return withPublicationLedger(async (ledger) => {
+    let published;
+    const result = await database("writer").begin(async (tx) => {
+      const row = await locked(tx, id, expectedVersion);
+      const draft = await draftFor(tx, row);
+      validatePublish(draft);
+      const guides = await tx`select content from classroom.teacher_guides where exercise_id = ${row.id}`;
+      if (guides[0] && guideSchema.parse(guides[0].content).answers.some((a) => !draft.content.questions.some((q) => q.id === a.questionId)))
+        throw new StudioError(422, "Update the teacher guide for removed questions before publishing.");
+      const version = row.version + 1;
+      const payload = projectStudent(row.legacy_id ?? row.id, row.slug, version, draft);
+      await ledger.deny(row.slug); // durable before ANY public database mutation
+      await tx`insert into classroom.published_exercises (exercise_id, slug, student_payload, version)
+        values (${row.id}, ${row.slug}, ${tx.json(payload)}, ${version})
+        on conflict (exercise_id) do update set student_payload = excluded.student_payload,
+        version = excluded.version, published_at = now()`;
+      await tx`update classroom.exercises set publication = 'published', version = ${version},
+        published_checksum = ${checksum(draft)}, published_at = now(), first_published_at = coalesce(first_published_at, now())
+        where id = ${row.id}`;
+      published = payload;
+      return { lockVersion: await touch(tx, row.id), studentPath: `/exercises/${row.slug}`, version };
+    });
+    if (!published) throw new Error("Publication failed");
+    await ledger.activate(published); // after acknowledged DB commit; failure leaves a durable deny
+    return result;
   });
 }
 export async function unpublishExercise(id: string, expectedVersion: number) {
   await authorizeTeacher();
-  return database("writer").begin(async (tx) => {
+  return withPublicationLedger(async (ledger) => database("writer").begin(async (tx) => {
     const row = await locked(tx, id, expectedVersion);
+    await ledger.deny(row.slug); // tombstone also applies during DB outage or failed transaction
     await tx`delete from classroom.published_exercises where exercise_id = ${row.id}`;
     await tx`update classroom.exercises set publication = 'draft', published_checksum = null where id = ${row.id}`;
     return { lockVersion: await touch(tx, row.id) };
-  });
+  }));
 }
 export async function deleteExercise(id: string, expectedVersion: number) {
   await authorizeTeacher();
@@ -169,9 +182,16 @@ export async function duplicateExercise(id: string, expectedVersion: number) {
     return { id: copy.id as string, slug: copy.slug as string, lockVersion: 1, publication: "draft" as const };
   });
 }
-// Reader credential has no access to draft/guide tables. Never fall back to seeds on miss/error.
+// The independent journal governs public visibility, including during database failures.
 export async function publishedExercise(slug: string) {
-  slugSchema.parse(slug);
-  const rows = await database("reader")`select student_payload from classroom.published_exercises where slug = ${slug}`;
-  return rows[0] ? studentSchema.parse(rows[0].student_payload) : null;
+  const recovery = await recoverySnapshot(slugSchema.parse(slug));
+  if (!recovery) return null;
+  if (process.env.CLASSROOM_CONTENT_SOURCE === "recovery") return recovery.exercise;
+  let rows;
+  try { rows = await database("reader")`select student_payload from classroom.published_exercises where slug = ${slug}`; }
+  catch { return recovery.exercise; } // committed public-only snapshot; never source fallback
+  if (!rows[0]) throw new StudioError(503, "Publication storage is inconsistent.");
+  const payload = studentSchema.parse(rows[0].student_payload);
+  if (publicChecksum(payload) !== recovery.key) throw new StudioError(503, "Publication storage is inconsistent.");
+  return payload;
 }

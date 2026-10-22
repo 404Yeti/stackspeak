@@ -4,7 +4,7 @@ const text = (max: number) => z.string().max(max).refine((s) => !s.includes("\0"
 const list = (max = 1000) => z.array(text(max)).max(50);
 export const questionSchema = z.strictObject({ id: text(80).min(1), prompt: text(2000) });
 export const vocabularySchema = z.strictObject({
-  term: text(120).min(1), definition: text(2000), example: text(2000),
+  term: text(120), definition: text(2000), example: text(2000),
   speakingPrompt: text(1000).optional(), pronunciation: text(500).optional(),
   readLines: z.array(z.number().int().min(1).max(20001)).min(1).max(500)
     .refine((a) => new Set(a).size === a.length, "Duplicate line reference").optional(),
@@ -24,7 +24,7 @@ export const contentSchema = z.strictObject({
 export const draftSchema = z.strictObject({
   content: contentSchema, vocabulary: z.array(vocabularySchema).max(100),
 }).superRefine((v, ctx) => {
-  if (new Set(v.vocabulary.map((x) => x.term.toLowerCase())).size !== v.vocabulary.length)
+  if (new Set(v.vocabulary.filter((x) => x.term.trim()).map((x) => x.term.toLowerCase())).size !== v.vocabulary.filter((x) => x.term.trim()).length)
     ctx.addIssue({ code: "custom", path: ["vocabulary"], message: "Terms must be unique" });
   v.vocabulary.forEach((entry, i) => {
     if (entry.readLines?.some((n) => n > v.content.readCode.split("\n").length))
@@ -62,7 +62,7 @@ export const publishedContentSchema = contentSchema.superRefine((v, ctx) => {
 export function validatePublish(draft: Draft) {
   draftSchema.parse(draft);
   publishedContentSchema.parse(draft.content);
-  z.array(vocabularySchema.refine((v) => !!v.definition.trim() && !!v.example.trim(), "Complete vocabulary definitions/examples"))
+  z.array(vocabularySchema.refine((v) => !!v.term.trim() && !!v.definition.trim() && !!v.example.trim(), "Complete vocabulary definitions/examples"))
     .min(1).parse(draft.vocabulary);
 }
 export function emptyDraft(language: "Python" | "C#", title = ""): Draft {

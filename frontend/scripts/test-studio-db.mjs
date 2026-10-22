@@ -27,13 +27,27 @@ try {
   query("alter role classroom_reader login; alter role classroom_writer login;");
   const testEnv = {
     ...process.env, CLASSROOM_TEST_DATABASE_URL: admin,
+    CLASSROOM_RECOVERY_DIR: join(dir, "publications"),
+    CLASSROOM_CONTENT_SOURCE: "database",
     CLASSROOM_DATABASE_READER_URL: `postgres://classroom_reader@127.0.0.1:${port}/postgres`,
     CLASSROOM_DATABASE_WRITER_URL: `postgres://classroom_writer@127.0.0.1:${port}/postgres`,
   };
   run(resolve(root, "frontend/node_modules/.bin/vitest"), ["run", "src/lib/classroom/studio/repository.integration.test.ts"], testEnv);
   console.log("Studio database integration tests passed.");
   if (process.argv.includes("--browser")) {
-    console.log(run(resolve(root, "frontend/node_modules/.bin/playwright"), ["test", "-c", "playwright.studio-api.config.ts", "--project=chromium"], testEnv));
+    // Fresh disposable browser fixtures after destructive/failure-path integration cases.
+    query(readFileSync(join(root, "supabase/tests/rollback.sql"), "utf8"));
+    apply();
+    query("alter role classroom_reader login; alter role classroom_writer login;");
+    testEnv.CLASSROOM_RECOVERY_DIR = join(dir, "browser-publications");
+    const cliArgs = ["--conditions=react-server", "--import", "tsx", "scripts/studio/import.ts"];
+    const dry = JSON.parse(run(process.execPath, cliArgs, testEnv));
+    if (dry.mode !== "dry-run" || dry.exercises.some((e) => e.action !== "insert")) throw new Error("Import dry-run failed");
+    const imported = JSON.parse(run(process.execPath, [...cliArgs, "--apply"], testEnv));
+    if (imported.exercises.length !== 4) throw new Error("Expected four legacy exercises");
+    const repeated = JSON.parse(run(process.execPath, [...cliArgs, "--apply"], testEnv));
+    if (repeated.exercises.some((e) => e.action !== "skip")) throw new Error("Import idempotency failed");
+    console.log(run(resolve(root, "frontend/node_modules/.bin/playwright"), ["test", "-c", "playwright.studio-api.config.ts", "--project=chromium", "--project=firefox"], testEnv));
   }
   query(readFileSync(join(root, "supabase/tests/rollback.sql"), "utf8"));
   apply();

@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 import { useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
@@ -45,6 +46,7 @@ export function ExerciseLibrary({ exercises }: { exercises: LibraryItem[] }) {
             <PipMascot expression="idea" size={112} alt="" />
           </div>
         </div>
+        <p className="mt-6"><Link className="classroom-text-button" href="/classroom/studio">Create and edit lessons in Classroom Studio →</Link></p>
         <section aria-label="Find exercises" className="classroom-filters">
           <label className="classroom-search">
             Search exercises

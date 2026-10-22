@@ -184,3 +184,78 @@ one Classroom server startup also timed out there. Final verification ran from
 to the feature worktree. No real private guides or credentials were used. The
 isolated PostgreSQL test cluster stops and removes its disposable data afterward.
 No physical iOS/Safari or hosted Supabase acceptance is claimed.
+
+## Infrastructure re-evaluation — Free preview proposal
+
+Read-only discovery after the next-phase approval found one organization:
+**Audli**, ID `cdvcacnmvgbwakvolrjd`, plan `free` / `tier_free`, with one visible
+active project. Organization membership roles are not returned by these tools;
+access does not establish ownership. Owner confirmation is pending. No existing
+project contents, credentials or configuration were inspected or changed.
+
+The Supabase `get_cost` read-only quote for a new project in that organization
+returned `type=project`, `recurrence=monthly`, `amount=0`. Free is sufficient for
+small synthetic-data development/protected preview: 500 MB DB, 5 GB egress,
+shared compute, no Pro daily-backup retention, pause after a week of inactivity.
+The Free quota is two active projects across owner/admin memberships, so the
+visible project count suggests room but does not establish all account-level
+eligibility. Confirm the quota without upgrading if creation is refused.
+
+The revised concrete proposal supersedes the earlier Pro-first recommendation:
+
+- New dedicated project: `stackspeak-classroom-studio-preview`.
+- Existing organization: Audli **only if the owner confirms control**.
+- Exact region: Singapore `ap-southeast-1`.
+- Plan: Free, expected recurring Supabase charge **US$0/month**; no paid add-ons.
+- Standard Postgres; Data API disabled; `classroom` excluded from exposed schemas;
+  only private restricted server reader/writer credentials, separate migration
+  operator credentials. No Supabase Auth integration or student accounts.
+- No paid backup, PITR, custom domain, dedicated IPv4, branching, Storage or
+  Realtime subscription. Use private local exports for disposable preview data.
+- Do not upgrade the organization or affect its existing project. If Free is
+  unavailable, stop and obtain approval for a new exact paid quote. Pro is not
+  required by the current feature set. Its US$25 organization minimum is not a
+  promise of the total cost of upgrading this organization: existing project
+  compute would also have to be assessed before any paid proposal.
+
+**No provisioning approval is implied.** Explicit approval is still required to
+create this exact project; remote migrations, credential configuration and a
+protected Preview deployment are separate later approvals. Local development is
+independent of all those decisions.
+
+Sources checked 2026-10-22:
+[Free and Pro pricing](https://supabase.com/pricing),
+[owner/admin project quota and organization billing](https://supabase.com/docs/guides/platform/billing-on-supabase),
+[regions](https://supabase.com/docs/guides/platform/regions).
+
+## Local Studio UI increment — final verification (2026-10-22)
+
+This supersedes the API-foundation test counts above. See
+[local Studio and recovery runbook](local-studio.md) for current setup and limits.
+
+| Check | Result |
+| --- | --- |
+| Frontend lint / typecheck / production build | Passed |
+| Full Vitest | 205 passed, 6 database tests skipped in the default run |
+| Disposable real Postgres 17 integration | All 6 passed separately, including grants, guides, import, DB failure recovery |
+| Import CLI dry-run / apply / repeat | Passed on synthetic data |
+| Disposable migration rollback/reapply | Passed |
+| Studio UI/API workflow, Chromium + Firefox | 6 passed |
+| Existing Classroom + hard HTTP status + unavailable DB, both browsers | 18 passed |
+| Local production-mode HTTPS security, both browsers | 4 passed |
+| Daily Challenge regression | 25 passed, including Run Code OFF |
+| Backend pytest / Ruff / mypy | 21 passed / clean / clean |
+
+Verification used the native filesystem copy for performance; 184 frontend
+source/test/config files were byte-compared with the feature worktree with no
+differences. Screenshots are under [artifacts](artifacts/). The browser test's
+initial exact catalog-count assertion was corrected to allow drafts created by
+the previous browser project; final runs above passed. No real lesson guides or
+production credentials were used. Safari host dependencies and hosted Supabase
+acceptance remain unverified. Runtime dependency audit remains clean; the existing
+development ESLint dependency audit entries remain outside this change.
+
+The only discovered organization is Audli (Free); ownership confirmation and
+explicit project-creation approval remain pending. No infrastructure was changed.
+The separate durable cloud recovery adapter is still required before any hosted
+database-backed student cutover or publishing. Source delivery stays enabled.

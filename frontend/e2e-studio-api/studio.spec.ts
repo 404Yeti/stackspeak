@@ -17,6 +17,7 @@ test("owner login and real HTTP authoring/publishing with anonymous isolation", 
     const path = `${collection}/${exercise.id}`;
     const publicPath = `/api/classroom/exercises/${exercise.slug}`;
     expect((await student.request.get(publicPath)).status()).toBe(404);
+    expect((await student.request.get(`/exercises/${exercise.slug}`)).status()).toBe(404);
     const draft = publishableDraft();
     draft.content.language = "C#";
     draft.content.filename = "Lesson.cs";
@@ -44,6 +45,11 @@ test("owner login and real HTTP authoring/publishing with anonymous isolation", 
     let publicResponse = await student.request.get(publicPath);
     expect(publicResponse.status()).toBe(200);
     const published = await publicResponse.json();
+    const csharpPage = await student.newPage();
+    expect((await csharpPage.goto(`/exercises/${exercise.slug}`))?.status()).toBe(200);
+    await expect(csharpPage.getByRole("heading", { name: published.title, exact: true })).toBeVisible();
+    await expect(csharpPage.getByText("C#", { exact: true })).toBeVisible();
+    expect(await csharpPage.content()).not.toContain("PRIVATE_CANARY");
     expect(published.language).toBe("C#");
     expect(JSON.stringify(published)).not.toContain("PRIVATE_CANARY");
     draft.content.title = "Autosaved draft, not public yet";

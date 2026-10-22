@@ -6,6 +6,8 @@ export type Database = ReturnType<typeof postgres>;
 export type Transaction = postgres.TransactionSql;
 const connections: Partial<Record<"reader" | "writer", Database>> = {};
 export function database(role: "reader" | "writer"): Database {
+  if (role === "writer" && process.env.CLASSROOM_CONTENT_SOURCE === "recovery")
+    throw new StudioError(503, "Studio is read-only during recovery.");
   if (connections[role]) return connections[role];
   const raw = process.env[`CLASSROOM_DATABASE_${role.toUpperCase()}_URL`];
   try {

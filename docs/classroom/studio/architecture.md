@@ -1,7 +1,9 @@
 # Classroom Studio — Phase A (AUD-78)
 
-Status: proposed, 2026-10-22. This document is the Phase A deliverable, not an
-implementation or deployment claim. Branch `feat/classroom-studio` starts from
+Status: Phase A proposal with approved local increments, 2026-10-22. The original
+assessment below is historical; see the local UI/recovery update at the end and
+[implementation runbook](local-studio.md) for current delivered behavior. No hosted
+deployment is claimed. Branch `feat/classroom-studio` starts from
 `origin/main` `15ca578a39ffcb8b2ba69f037448a2348507a738` (released AUD-53).
 The isolated checkout is `/mnt/c/Users/Lenovo/projects/stackspeak-studio`;
 the original checkout's AUD-60 diagnostic edits are untouched.
@@ -343,3 +345,15 @@ No Studio UI/autosave, live import, old-loader replacement or browser rendering
 change is included in this local API increment. Existing source fallback and
 runtime guides remain intact. No cloud/remote writes or deployment were made.
 See [setup, infrastructure proposal and verification](setup.md).
+
+## Local UI and recovery increment (supersedes API-only status above)
+
+The Studio UI, import CLI, pre-render HTTP 404 gate and local independent
+publication recovery adapter are now implemented. Default published lesson
+loading is still source-backed. See [local implementation and recovery runbook](local-studio.md)
+for the precise state machine, import semantics, rollback fence and cloud adapter
+gate. The local adapter is not suitable for Vercel and refuses hosted operation;
+no database-backed hosted availability claim is made. The original access-control
+schema and separate draft/published snapshot design remain unchanged. A second
+migration allows incomplete vocabulary terms in drafts while publish validation
+still requires complete terms, definitions and examples.

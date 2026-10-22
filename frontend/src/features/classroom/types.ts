@@ -1,11 +1,12 @@
 export type Language = "Python" | "C#" | "JavaScript" | "C++";
-export type Difficulty = "Beginner" | "Intermediate";
+export type Difficulty = "Beginner" | "Intermediate" | "Advanced";
 export type Stage = "Read" | "Explain" | "Fix";
 export type VocabularyEntry = {
   term: string;
   definition: string;
   example: string;
   speakingPrompt?: string;
+  pronunciation?: string;
   /** One-based references to the supplied Read code, never inferred from a draft. */
   readLines?: number[];
 };
@@ -26,6 +27,8 @@ export type StudentExercise = ExerciseSummary & {
   filename: string;
   instructions: string;
   readCode: string;
+  readContent?: string;
+  learningObjectives?: string[];
   vocabulary: VocabularyEntry[];
   questions: { id: string; prompt: string }[];
   fix: { instructions: string; buggyCode: string; hints: string[] };

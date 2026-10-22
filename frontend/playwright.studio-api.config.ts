@@ -12,6 +12,8 @@ export default defineConfig({
     ...server,
     env: {
       ...server.env,
+      CLASSROOM_CONTENT_SOURCE: "database",
+      CLASSROOM_RECOVERY_DIR: process.env.CLASSROOM_RECOVERY_DIR!,
       CLASSROOM_DATABASE_READER_URL: process.env.CLASSROOM_DATABASE_READER_URL!,
       CLASSROOM_DATABASE_WRITER_URL: process.env.CLASSROOM_DATABASE_WRITER_URL!,
     },

@@ -8,6 +8,11 @@ import { closeDatabases } from "./database";
 import { createExercise, getExercise, saveDraft, getGuide, saveGuide, previewExercise, publishExercise,
   unpublishExercise, duplicateExercise, deleteExercise, listExercises, publishedExercise } from "./repository";
 import { publishableDraft, syntheticGuide } from "@/test/studioFixtures";
+import catalog from "../../../../content/classroom/exercises.json";
+import { importCatalog } from "./importer";
+import { parseExercises, studentProjection } from "../schema";
+import { makeTestGuides } from "@/test/classroomFixtures";
+import { withPublicationLedger } from "./recovery";
 const enabled = !!process.env.CLASSROOM_TEST_DATABASE_URL;
 describe.skipIf(!enabled)("Studio disposable Postgres integration", () => {
   let admin: ReturnType<typeof postgres>;
@@ -118,4 +123,49 @@ describe.skipIf(!enabled)("Studio disposable Postgres integration", () => {
     await expect(admin`update classroom.published_exercises set student_payload = student_payload || '{"privateNotes":"CANARY"}'::jsonb
       where exercise_id = ${e.id}`).rejects.toMatchObject({ code: "23514" });
   });
+  it("imports all legacy content idempotently without overwriting edits or reviving unpublished seeds", async () => {
+    const guides = makeTestGuides(parseExercises(catalog), "IMPORT_PRIVATE_CANARY");
+    const dry = await importCatalog(catalog, undefined);
+    expect(dry.mode).toBe("dry-run");
+    expect(dry.exercises.every((e) => e.action === "insert")).toBe(true);
+    const before = await admin`select count(*)::integer as n from classroom.exercises where import_source is not null`;
+    expect(before[0].n).toBe(0);
+    const imported = await importCatalog(catalog, guides, true);
+    expect(imported.missingGuides).toBe(0);
+    const repeated = await importCatalog(catalog, guides, true);
+    expect(repeated.exercises.every((e) => e.action === "skip" && e.guide === "skip")).toBe(true);
+    for (const e of parseExercises(catalog)) {
+      const shared = await publishedExercise(e.slug);
+      if (e.publication === "draft") { expect(shared).toBeNull(); continue; }
+      const legacy = { ...shared! };
+      Reflect.deleteProperty(legacy, "readContent"); Reflect.deleteProperty(legacy, "learningObjectives");
+      expect(legacy).toEqual(studentProjection(e));
+      expect(JSON.stringify(shared)).not.toContain("IMPORT_PRIVATE_CANARY");
+    }
+    const rows = await admin`select id from classroom.exercises where slug = 'python-loop-accumulator'`;
+    const current = await getExercise(rows[0].id);
+    current.draft.content.title = "Teacher's later edit";
+    const saved = await saveDraft(current.id, current.lockVersion, current.draft);
+    await importCatalog(catalog, guides, true);
+    expect((await getExercise(current.id)).draft.content.title).toBe("Teacher's later edit");
+    await expect(importCatalog([{ ...catalog[0], title: "Conflicting replacement" }, ...catalog.slice(1)], guides, true)).rejects.toThrow("conflict");
+    await unpublishExercise(current.id, saved.lockVersion);
+    await importCatalog(catalog, guides, true);
+    expect(await publishedExercise(current.slug)).toBeNull();
+  });
+  it("recovers published snapshots on DB read failure and never resurrects a deny after partial failure", async () => {
+    const e = await createExercise("Python");
+    const saved = await saveDraft(e.id, e.lockVersion, publishableDraft());
+    await publishExercise(e.id, saved.lockVersion);
+    const original = process.env.CLASSROOM_DATABASE_READER_URL!;
+    await closeDatabases();
+    process.env.CLASSROOM_DATABASE_READER_URL = "postgres://classroom_reader@127.0.0.1:1/postgres";
+    try { expect((await publishedExercise(e.slug))?.title).toBe(publishableDraft().content.title); }
+    finally { await closeDatabases(); process.env.CLASSROOM_DATABASE_READER_URL = original; }
+    await expect(withPublicationLedger(async (ledger) => { await ledger.deny(e.slug); throw new Error("Crash before DB unpublish"); })).rejects.toThrow();
+    const db = await admin`select publication from classroom.exercises where id = ${e.id}`;
+    expect(db[0].publication).toBe("published");
+    expect(await publishedExercise(e.slug)).toBeNull();
+  });
+
 });
