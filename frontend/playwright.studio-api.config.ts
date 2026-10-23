@@ -14,7 +14,9 @@ export default defineConfig({
       ...server.env,
       CLASSROOM_CONTENT_SOURCE: process.env.CLASSROOM_TEST_STUDIO_MODE === "studio" ? "studio" : "database",
       CLASSROOM_RECOVERY_DIR: process.env.CLASSROOM_RECOVERY_DIR!,
-      CLASSROOM_DATABASE_READER_URL: process.env.CLASSROOM_DATABASE_READER_URL!,
+      CLASSROOM_DATABASE_READER_URL: process.env.CLASSROOM_TEST_READER_OUTAGE === "1"
+        ? "postgres://classroom_reader@127.0.0.1:1/postgres"
+        : process.env.CLASSROOM_DATABASE_READER_URL!,
       CLASSROOM_DATABASE_WRITER_URL: process.env.CLASSROOM_DATABASE_WRITER_URL!,
     },
   },

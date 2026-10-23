@@ -49,6 +49,9 @@ try {
     const repeated = JSON.parse(run(process.execPath, [...cliArgs, "--apply"], testEnv));
     if (repeated.exercises.some((e) => e.action !== "skip")) throw new Error("Import idempotency failed");
     console.log(run(resolve(root, "frontend/node_modules/.bin/playwright"), ["test", "-c", "playwright.studio-api.config.ts", "--project=chromium", ...(process.env.CLASSROOM_TEST_STUDIO_MODE === "studio" ? [] : ["--project=firefox"])], testEnv));
+    if (process.env.CLASSROOM_TEST_STUDIO_MODE === "studio") {
+      console.log(run(resolve(root, "frontend/node_modules/.bin/playwright"), ["test", "-c", "playwright.studio-api.config.ts", "--project=chromium", "reader-outage.spec.ts"], { ...testEnv, CLASSROOM_TEST_READER_OUTAGE: "1" }));
+    }
   }
   query(readFileSync(join(root, "supabase/tests/rollback.sql"), "utf8"));
   apply();

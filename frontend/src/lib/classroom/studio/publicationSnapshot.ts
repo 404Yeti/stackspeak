@@ -17,7 +17,9 @@ export async function currentStudentSnapshot(slug: string): Promise<StudioStuden
     const legacy = sharedExercise(slug);
     return legacy ? studentSchema.parse({ ...legacy, readContent: legacy.readContent ?? "", learningObjectives: legacy.learningObjectives ?? [] }) : null;
   }
-  const rows = await (await database("reader"))`select student_payload from classroom.published_exercises where slug = ${slug}`;
+  // Keep initialization separate: the production compiler misgroups an awaited template tag.
+  const sql = await database("reader");
+  const rows = await sql`select student_payload from classroom.published_exercises where slug = ${slug}`;
   if (!rows[0]) return null;
   const value = studentSchema.parse(rows[0].student_payload);
   if (value.slug !== slug) throw new StudioError(503, "Publication storage is inconsistent.");

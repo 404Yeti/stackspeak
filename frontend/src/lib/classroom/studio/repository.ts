@@ -196,7 +196,10 @@ export async function publishedExercise(slug: string) {
   if (!recovery) return null;
   if (process.env.CLASSROOM_CONTENT_SOURCE === "recovery") return recovery.exercise;
   let rows;
-  try { rows = await (await database("reader"))`select student_payload from classroom.published_exercises where slug = ${slug}`; }
+  try {
+    const sql = await database("reader");
+    rows = await sql`select student_payload from classroom.published_exercises where slug = ${slug}`;
+  }
   catch { return recovery.exercise; } // committed public-only snapshot; never source fallback
   if (!rows[0]) throw new StudioError(503, "Publication storage is inconsistent.");
   const payload = studentSchema.parse(rows[0].student_payload);
