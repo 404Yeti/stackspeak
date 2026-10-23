@@ -1,16 +1,18 @@
 "use client";
-import { useRef, type ReactNode } from "react";
+import { useId, useRef, type ReactNode } from "react";
 import { CodeInput } from "@/components/ui/CodeInput";
 import { HighlightedCode } from "../HighlightedCode";
 export function Field({ label, children, hint }: { label: string; children: ReactNode; hint?: string }) {
   return <div className="studio-field"><span className="studio-label">{label}</span>{children}{hint && <p className="text-xs text-text-muted">{hint}</p>}</div>;
 }
-export function TextField({ label, value, onChange, multiline = false, maxLength = 8000 }: {
-  label: string; value: string; onChange: (v: string) => void; multiline?: boolean; maxLength?: number;
+export function TextField({ label, value, onChange, multiline = false, maxLength = 8000, error }: {
+  label: string; value: string; onChange: (v: string) => void; multiline?: boolean; maxLength?: number; error?: string;
 }) {
-  return <label className="studio-field"><span className="studio-label">{label}</span>{multiline ?
-    <textarea className="classroom-input min-h-28" value={value} maxLength={maxLength} onChange={(e) => onChange(e.target.value)} /> :
-    <input className="classroom-input" value={value} maxLength={maxLength} onChange={(e) => onChange(e.target.value)} />}</label>;
+  const errorId = useId();
+  const validation = { "aria-invalid": !!error, "aria-describedby": error ? errorId : undefined };
+  return <><label className="studio-field"><span className="studio-label">{label}</span>{multiline ?
+    <textarea {...validation} className="classroom-input min-h-28" value={value} maxLength={maxLength} onChange={(e) => onChange(e.target.value)} /> :
+    <input {...validation} className="classroom-input" value={value} maxLength={maxLength} onChange={(e) => onChange(e.target.value)} />}</label>{error && <p id={errorId} role="alert" className="text-sm text-danger">{error}</p>}</>;
 }
 export function ListField({ label, value, onChange }: { label: string; value: string[]; onChange: (v: string[]) => void }) {
   return <TextField label={label} value={value.join("\n")} onChange={(v) => onChange(v ? v.split("\n") : [])} multiline />;

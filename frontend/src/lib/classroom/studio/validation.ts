@@ -3,11 +3,16 @@ import { z } from "zod";
 const text = (max: number) => z.string().max(max).refine((s) => !s.includes("\0"), "NUL is not allowed");
 const list = (max = 1000) => z.array(text(max)).max(50);
 export const questionSchema = z.strictObject({ id: text(80).min(1), prompt: text(2000) });
+const lineReferences = (min: number) => z.array(z.number().int().min(1).max(20001)).min(min).max(500)
+  .refine((a) => new Set(a).size === a.length, "Duplicate line reference");
 export const vocabularySchema = z.strictObject({
   term: text(120), definition: text(2000), example: text(2000),
   speakingPrompt: text(1000).optional(), pronunciation: text(500).optional(),
-  readLines: z.array(z.number().int().min(1).max(20001)).min(1).max(500)
-    .refine((a) => new Set(a).size === a.length, "Duplicate line reference").optional(),
+  readLines: lineReferences(1).optional(),
+});
+const draftVocabularySchema = vocabularySchema.extend({
+  // Empty references are explicit in drafts and omitted from public projections.
+  readLines: lineReferences(0).optional(),
 });
 export const contentSchema = z.strictObject({
   title: text(200), description: text(4000), language: z.enum(["Python", "C#"]),
@@ -22,7 +27,7 @@ export const contentSchema = z.strictObject({
     ctx.addIssue({ code: "custom", path: ["questions"], message: "Question IDs must be unique" });
 });
 export const draftSchema = z.strictObject({
-  content: contentSchema, vocabulary: z.array(vocabularySchema).max(100),
+  content: contentSchema, vocabulary: z.array(draftVocabularySchema).max(100),
 }).superRefine((v, ctx) => {
   if (new Set(v.vocabulary.filter((x) => x.term.trim()).map((x) => x.term.toLowerCase())).size !== v.vocabulary.filter((x) => x.term.trim()).length)
     ctx.addIssue({ code: "custom", path: ["vocabulary"], message: "Terms must be unique" });
@@ -47,6 +52,22 @@ export const actionSchema = z.strictObject({ expectedVersion: versionSchema });
 export const createSchema = z.strictObject({ language: z.enum(["Python", "C#"]), title: text(200).optional() });
 export const idSchema = z.uuid();
 export const slugSchema = z.string().min(1).max(100).regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/);
+export function recoverStoredDraft(input: { content: unknown; vocabulary: unknown[] }) {
+  const recoveredReadLines: number[] = [];
+  const vocabulary = input.vocabulary.map((entry, i) => {
+    if (!entry || typeof entry !== "object" || !("readLines" in entry) || entry.readLines === undefined) return entry;
+    const max = typeof input.content === "object" && input.content !== null && "readCode" in input.content && typeof input.content.readCode === "string"
+      ? input.content.readCode.split("\n").length : 0;
+    const lines: number[] = [];
+    if (Array.isArray(entry.readLines)) for (const n of entry.readLines) {
+      if (typeof n === "number" && Number.isSafeInteger(n) && n >= 1 && n <= max && !lines.includes(n) && lines.length < 500) lines.push(n);
+    }
+    if (JSON.stringify(lines) === JSON.stringify(entry.readLines)) return entry;
+    recoveredReadLines.push(i + 1);
+    return { ...entry, readLines: lines };
+  });
+  return { draft: draftSchema.parse({ ...input, vocabulary }), recoveredReadLines };
+}
 export type Draft = z.infer<typeof draftSchema>;
 export type Guide = z.infer<typeof guideSchema>;
 export const publishedContentSchema = contentSchema.superRefine((v, ctx) => {
@@ -62,7 +83,7 @@ export const publishedContentSchema = contentSchema.superRefine((v, ctx) => {
 export function validatePublish(draft: Draft) {
   draftSchema.parse(draft);
   publishedContentSchema.parse(draft.content);
-  z.array(vocabularySchema.refine((v) => !!v.term.trim() && !!v.definition.trim() && !!v.example.trim(), "Complete vocabulary definitions/examples"))
+  z.array(draftVocabularySchema.refine((v) => !!v.term.trim() && !!v.definition.trim() && !!v.example.trim(), "Complete vocabulary definitions/examples"))
     .min(1).parse(draft.vocabulary);
 }
 export function emptyDraft(language: "Python" | "C#", title = ""): Draft {
@@ -89,7 +110,7 @@ export function projectStudent(id: string, slug: string, version: number, draft:
     filename: c.filename, instructions: c.instructions, readCode: c.readCode, readContent: c.readContent,
     learningObjectives: c.learningObjectives, questions: c.questions.map((q) => ({ id: q.id, prompt: q.prompt })),
     vocabulary: d.vocabulary.map((v) => ({ term: v.term, definition: v.definition, example: v.example,
-      ...(v.readLines ? { readLines: [...v.readLines] } : {}),
+      ...(v.readLines?.length ? { readLines: [...v.readLines] } : {}),
       ...(v.speakingPrompt !== undefined ? { speakingPrompt: v.speakingPrompt } : {}),
       ...(v.pronunciation !== undefined ? { pronunciation: v.pronunciation } : {}) })),
     fix: { instructions: c.fix.instructions, buggyCode: c.fix.buggyCode, hints: [...c.fix.hints] } });
