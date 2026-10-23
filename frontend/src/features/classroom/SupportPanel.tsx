@@ -60,6 +60,7 @@ export function SupportPanel({
                 <p className="mt-2 text-sm leading-relaxed text-text-muted">
                   “{v.example}”
                 </p>
+                {v.pronunciation && <p className="mt-2 text-xs text-text-muted">Pronunciation: {v.pronunciation}</p>}
                 {v.speakingPrompt && (
                   <p className="mt-3 border-l-2 border-accent pl-3 text-xs leading-relaxed text-text-muted">
                     Say it aloud: {v.speakingPrompt}

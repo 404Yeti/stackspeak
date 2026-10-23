@@ -15,6 +15,7 @@ export default defineConfig({
       "e2e-run/**",
       "e2e-classroom/**",
       "e2e-classroom-production/**",
+      "e2e-studio-api/**",
     ],
     // WSL/9p-mounted filesystems can be too slow to fork test workers in time
     // with the default "forks" pool; threads avoids the fork+exec overhead.

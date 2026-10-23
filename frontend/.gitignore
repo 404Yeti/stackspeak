@@ -50,3 +50,6 @@ next-env.d.ts
 # Local private teaching material must live outside this repository.
 /classroom-private/
 *.private.json
+
+# Studio API browser artifacts
+/test-results-studio-api/

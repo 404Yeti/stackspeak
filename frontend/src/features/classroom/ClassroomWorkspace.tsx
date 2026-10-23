@@ -258,6 +258,8 @@ export function ClassroomWorkspace({
                   ? "Use the questions to explain the behavior and your reasoning. There’s more than one good way to say it."
                   : e.instructions}
             </p>
+            {stage === "Read" && e.readContent && <p className="mb-5 whitespace-pre-wrap text-text-muted">{e.readContent}</p>}
+            {stage === "Read" && !!e.learningObjectives?.length && <section className="mb-5"><h3 className="mb-2 text-sm font-semibold">Learning objectives</h3><ul className="list-disc space-y-1 pl-5 text-sm text-text-muted">{e.learningObjectives.map((objective, i) => <li key={i}>{objective}</li>)}</ul></section>}
             <div
               className="classroom-code-controls"
               aria-label="Code display controls"
