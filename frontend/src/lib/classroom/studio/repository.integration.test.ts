@@ -103,6 +103,32 @@ describe.skipIf(!enabled)("Studio disposable Postgres integration", () => {
     await deleteExercise(created.id, lockVersion);
     await expect(getExercise(created.id)).rejects.toMatchObject({ status: 404 });
   });
+  it("recovers legacy null references without losing vocabulary or changing published snapshots", async () => {
+    const created = await createExercise("Python", "Reference recovery");
+    const draft = publishableDraft();
+    draft.vocabulary = draft.vocabulary.slice(0, 2);
+    draft.vocabulary.push({ term: "third", definition: "Preserved definition", example: "Preserved example", readLines: [1] });
+    const saved = await saveDraft(created.id, created.lockVersion, draft);
+    const published = await publishExercise(created.id, saved.lockVersion);
+    const before = await publishedExercise(created.slug);
+    await admin`update classroom.vocabulary set entry = jsonb_set(entry, '{readLines}', '[null]'::jsonb)
+      where exercise_id = ${created.id} and position = 2`;
+    const recovered = await getExercise(created.id);
+    expect(recovered.recoveredReadLines).toEqual([3]);
+    expect(recovered.draft.vocabulary).toEqual([...draft.vocabulary.slice(0, 2), { ...draft.vocabulary[2], readLines: [] }]);
+    expect(recovered.lockVersion).toBe(published.lockVersion);
+    const unchanged = await admin`select entry->'readLines' as lines from classroom.vocabulary where exercise_id = ${created.id} and position = 2`;
+    expect(unchanged[0].lines).toEqual([null]); // opening did not write or discard stored content
+    const fixed = await saveDraft(created.id, recovered.lockVersion, recovered.draft);
+    expect((await getExercise(created.id)).recoveredReadLines).toEqual([]);
+    expect((await getExercise(created.id)).draft.vocabulary[2].readLines).toEqual([]);
+    expect(await publishedExercise(created.slug)).toEqual(before);
+    const corrected = structuredClone(recovered.draft); corrected.vocabulary[2].readLines = [1, 2];
+    await saveDraft(created.id, fixed.lockVersion, corrected);
+    await closeDatabases();
+    expect((await getExercise(created.id)).draft).toEqual(corrected);
+    expect(await publishedExercise(created.slug)).toEqual(before);
+  });
   it("validates publication, line references and guide question IDs; filters and bounds the library", async () => {
     const e = await createExercise("C#", "Injection ' OR true -- <script>");
     await expect(publishExercise(e.id, e.lockVersion)).rejects.toThrow();

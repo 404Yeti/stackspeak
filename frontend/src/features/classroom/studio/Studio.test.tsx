@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }) }));
@@ -10,7 +10,7 @@ import { GuideTab } from "./GuideTab";
 import { publishableDraft, syntheticGuide } from "@/test/studioFixtures";
 const api = vi.hoisted(() => ({ request: vi.fn() }));
 vi.mock("./client", async (original) => ({ ...(await original<object>()), studioRequest: api.request }));
-afterEach(() => { cleanup(); vi.clearAllMocks(); });
+afterEach(() => { cleanup(); vi.useRealTimers(); vi.clearAllMocks(); });
 describe("Classroom Studio components", () => {
   it("renders the content builder with code editors and stable questions", () => {
     const value = publishableDraft().content; const change = vi.fn();
@@ -39,6 +39,53 @@ describe("Classroom Studio components", () => {
     expect(screen.queryByDisplayValue(guide.privateNotes)).not.toBeInTheDocument();
     expect(screen.queryByText(guide.idealExplanation)).not.toBeInTheDocument();
     expect(screen.getByRole("navigation", { name: "Exercise stages" })).toBeInTheDocument();
+  });
+  it("saves the third vocabulary entry consistently, blocks invalid text across tabs, and clears references", async () => {
+    vi.useFakeTimers();
+    api.request.mockImplementation(async (_path, _method, body) => ({ lockVersion: body.expectedVersion + 1 }));
+    const draft = publishableDraft();
+    draft.vocabulary = draft.vocabulary.slice(0, 2);
+    draft.vocabulary.push({ term: "third", definition: "Keep definition", example: "Keep example" });
+    render(<StudioEditor initial={{ id: "id", slug: "slug", publication: "draft", version: 0, lockVersion: 1, updatedAt: "", hasUnpublishedChanges: false, draft }} deliveryEnabled />);
+    fireEvent.click(screen.getByRole("tab", { name: /Vocabulary/ }));
+    const lines = screen.getAllByLabelText("Read code lines (comma separated)")[2];
+    fireEvent.change(lines, { target: { value: "1" } });
+    await act(async () => { await vi.advanceTimersByTimeAsync(1000); });
+    expect(api.request.mock.calls[0][2].draft.vocabulary[2].readLines).toEqual([1]);
+    expect(api.request.mock.calls[0][2].draft.vocabulary[0]).toEqual(draft.vocabulary[0]);
+    fireEvent.change(lines, { target: { value: "not a line" } });
+    expect(lines).toHaveAttribute("aria-invalid", "true");
+    expect(screen.getAllByRole("alert").some((el) => el.textContent?.includes("whole line numbers"))).toBe(true);
+    fireEvent.click(screen.getByRole("tab", { name: /Content/ }));
+    await act(async () => { await vi.advanceTimersByTimeAsync(2000); });
+    await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Save draft" })); });
+    expect(api.request).toHaveBeenCalledTimes(1);
+    fireEvent.click(screen.getByRole("tab", { name: /Vocabulary/ }));
+    expect(lines).toHaveValue("not a line");
+    fireEvent.change(lines, { target: { value: "1, " } });
+    fireEvent.change(lines, { target: { value: "" } });
+    await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Save draft" })); });
+    expect(api.request.mock.calls[1][2].draft.vocabulary[2]).toEqual({ ...draft.vocabulary[2], readLines: [] });
+    expect(api.request.mock.calls[1][2].expectedVersion).toBe(2);
+    expect(JSON.stringify(api.request.mock.calls)).not.toContain("null");
+    vi.useRealTimers();
+  });
+  it("keeps reference text with its vocabulary entry when moving and deleting rows", () => {
+    const draft = publishableDraft();
+    const { rerender } = render(<VocabularyTab draft={draft} onChange={api.request} />);
+    fireEvent.change(screen.getAllByLabelText("Read code lines (comma separated)")[1], { target: { value: "2" } });
+    draft.vocabulary = api.request.mock.calls.at(-1)![0];
+    rerender(<VocabularyTab draft={draft} onChange={api.request} />);
+    fireEvent.click(screen.getByRole("button", { name: "Move vocabulary 2 up" }));
+    draft.vocabulary = api.request.mock.calls.at(-1)![0];
+    rerender(<VocabularyTab draft={draft} onChange={api.request} />);
+    expect(screen.getAllByLabelText("Read code lines (comma separated)")[0]).toHaveValue("2");
+    expect(screen.getByLabelText("Technical term 1")).toHaveValue(draft.vocabulary[0].term);
+    fireEvent.click(screen.getByRole("button", { name: "Delete vocabulary 1" }));
+    draft.vocabulary = api.request.mock.calls.at(-1)![0];
+    rerender(<VocabularyTab draft={draft} onChange={api.request} />);
+    expect(screen.queryByLabelText("Technical term 3")).not.toBeInTheDocument();
+    expect(screen.getByLabelText("Technical term 1")).toHaveValue(draft.vocabulary[0].term);
   });
   it("renders the private guide field set with a clear boundary", () => {
     render(<GuideTab value={syntheticGuide()} draft={publishableDraft()} onChange={vi.fn()} />);

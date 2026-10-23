@@ -1,6 +1,7 @@
 import type { Draft, Guide } from "@/lib/classroom/studio/validation";
 export type EditorRecord = {
   id: string; slug: string; publication: "draft" | "published"; lockVersion: number;
+  recoveredReadLines?: number[];
   version: number; updatedAt: string; hasUnpublishedChanges: boolean; draft: Draft;
 };
 export class ApiError extends Error {

@@ -7,7 +7,7 @@ import { withPublicationLedger, recoverySnapshot, publicChecksum, type Publicati
 import { currentStudentSnapshot, reservedSourceSlug, validateSnapshotTransport } from "./publicationSnapshot";
 import { StudioError } from "./errors";
 import { contentSchema, draftSchema, guideSchema, idSchema, slugSchema, studentSchema,
-  projectStudent, validatePublish, emptyDraft, type Draft, type Guide } from "./validation";
+  projectStudent, validatePublish, emptyDraft, recoverStoredDraft, type Draft, type Guide } from "./validation";
 
 const rowSchema = z.object({ id: idSchema, legacy_id: z.string().nullable(), slug: slugSchema,
   content: contentSchema, publication: z.enum(["draft", "published"]), version: z.number().int(),
@@ -80,8 +80,9 @@ export async function getExercise(id: string) {
   await authorizeTeacher();
   return (await database("writer")).begin(async (tx) => {
     const row = await locked(tx, id);
-    const draft = await draftFor(tx, row);
-    return { ...metadata(row, draft), draft };
+    const rows = await tx`select entry from classroom.vocabulary where exercise_id = ${row.id} order by position`;
+    const { draft, recoveredReadLines } = recoverStoredDraft({ content: row.content, vocabulary: rows.map((r) => r.entry) });
+    return { ...metadata(row, draft), draft, recoveredReadLines };
   });
 }
 export async function saveDraft(id: string, expectedVersion: number, input: Draft) {

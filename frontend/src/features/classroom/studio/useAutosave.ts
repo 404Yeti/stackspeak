@@ -1,13 +1,13 @@
 "use client";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
-import type { Draft, Guide } from "@/lib/classroom/studio/validation";
+import { draftSchema, type Draft, type Guide } from "@/lib/classroom/studio/validation";
 import { ApiError, studioRequest } from "./client";
 type Acknowledged = { draft: string; guide: string | null };
 /** One queue and shared version for draft/guide writes. Private data stays in component memory. */
-export function useAutosave(id: string, initialVersion: number, draft: Draft, guide: Guide | null) {
-  const latest = useRef({ draft, guide });
-  useLayoutEffect(() => { latest.current = { draft, guide }; }, [draft, guide]);
-  const [ack, setAck] = useState<Acknowledged>({ draft: JSON.stringify(draft), guide: null });
+export function useAutosave(id: string, initialVersion: number, draft: Draft, guide: Guide | null, validationError = "", needsRecoverySave = false) {
+  const latest = useRef({ draft, guide, validationError });
+  useLayoutEffect(() => { latest.current = { draft, guide, validationError }; }, [draft, guide, validationError]);
+  const [ack, setAck] = useState<Acknowledged>({ draft: needsRecoverySave ? "" : JSON.stringify(draft), guide: null });
   const saved = useRef(ack);
   const version = useRef(initialVersion);
   const running = useRef<Promise<boolean> | null>(null);
@@ -16,17 +16,20 @@ export function useAutosave(id: string, initialVersion: number, draft: Draft, gu
   const [error, setError] = useState("");
   const [blockedStatus, setBlockedStatus] = useState<number | null>(null);
   const blocked = blockedStatus !== null;
-  const dirty = JSON.stringify(draft) !== ack.draft || (guide !== null && JSON.stringify(guide) !== ack.guide);
+  const dirty = !!validationError || JSON.stringify(draft) !== ack.draft || (guide !== null && JSON.stringify(guide) !== ack.guide);
   const acceptGuide = useCallback((value: Guide) => { saved.current.guide = JSON.stringify(value); setAck({ ...saved.current }); }, []);
   const setVersion = useCallback((value: number) => { version.current = value; }, []);
   const save = useCallback(async (): Promise<boolean> => {
     if (running.current) return running.current;
     if (blocked) return false;
+    if (validationError) return false;
     const task = async () => {
       if (mounted.current) { setStatus("Saving…"); setError(""); }
       try {
         let remaining;
         do {
+          if (latest.current.validationError) throw new Error(latest.current.validationError);
+          draftSchema.parse(latest.current.draft);
           const content = JSON.stringify(latest.current.draft);
           if (content !== saved.current.draft) {
             const result = await studioRequest<{ lockVersion: number }>(`/${id}`, "PATCH", { expectedVersion: version.current, draft: JSON.parse(content) });
@@ -53,12 +56,12 @@ export function useAutosave(id: string, initialVersion: number, draft: Draft, gu
     };
     running.current = task();
     try { return await running.current; } finally { running.current = null; }
-  }, [blocked, id]);
+  }, [blocked, id, validationError]);
   useEffect(() => {
-    if (!dirty || blocked) return;
+    if (!dirty || blocked || validationError) return;
     const timer = window.setTimeout(() => { void save(); }, 1000);
     return () => window.clearTimeout(timer);
-  }, [draft, guide, dirty, blocked, save]);
+  }, [draft, guide, dirty, blocked, save, validationError]);
   useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
   useEffect(() => {
     if (!dirty) return;
@@ -80,6 +83,6 @@ export function useAutosave(id: string, initialVersion: number, draft: Draft, gu
     return () => { window.removeEventListener("beforeunload", beforeUnload); window.removeEventListener("popstate", pop, true);
       document.removeEventListener("click", navigate, true); document.removeEventListener("submit", submit, true); };
   }, [dirty]);
-  return { save, dirty, status: dirty && status === "Saved" ? "Unsaved changes" : status, error, blocked,
+  return { save, dirty, status: validationError ? "Not saved" : dirty && status === "Saved" ? "Unsaved changes" : status, error: validationError || error, blocked,
     version, setVersion, acceptGuide, canRetrySession: blockedStatus === 401, resumeSession: () => setBlockedStatus(null), busy: status === "Saving…" };
 }

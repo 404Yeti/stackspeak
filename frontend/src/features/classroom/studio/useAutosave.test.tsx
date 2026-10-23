@@ -30,6 +30,33 @@ describe("Studio autosave", () => {
     expect(api.request.mock.calls[1][2].expectedVersion).toBe(2);
     expect(result.current.dirty).toBe(false);
   });
+  it("rejects nonfinite state before JSON serialization can turn it into null", async () => {
+    vi.useFakeTimers(); const draft = publishableDraft();
+    const { result, rerender } = renderHook(({ value }) => useAutosave("exercise", 1, value, null), { initialProps: { value: draft } });
+    const invalid = structuredClone(draft); invalid.vocabulary[0].readLines = [NaN];
+    rerender({ value: invalid });
+    await act(async () => { expect(await result.current.save()).toBe(false); });
+    expect(api.request).not.toHaveBeenCalled(); expect(result.current.status).toBe("Not saved");
+  });
+  it("clears a local validation error when corrected back to the saved reference", async () => {
+    vi.useFakeTimers(); const draft = publishableDraft();
+    const { result, rerender } = renderHook(({ error }) => useAutosave("exercise", 1, draft, null, error), { initialProps: { error: "" } });
+    rerender({ error: "Vocabulary 3: use whole numbers" });
+    await act(async () => { expect(await result.current.save()).toBe(false); });
+    expect(result.current.status).toBe("Not saved"); expect(result.current.dirty).toBe(true);
+    rerender({ error: "" });
+    expect(result.current.status).toBe("Saved"); expect(result.current.error).toBe("");
+    expect(result.current.dirty).toBe(false); expect(api.request).not.toHaveBeenCalled();
+  });
+  it("saves recovered drafts even without a further edit", async () => {
+    vi.useFakeTimers(); api.request.mockResolvedValue({ lockVersion: 2 });
+    const draft = publishableDraft(); draft.vocabulary[0].readLines = [];
+    const { result } = renderHook(() => useAutosave("exercise", 1, draft, null, "", true));
+    expect(result.current.dirty).toBe(true);
+    await act(async () => { await result.current.save(); });
+    expect(api.request.mock.calls[0][2].draft.vocabulary[0].readLines).toEqual([]);
+    expect(result.current.dirty).toBe(false);
+  });
   it("does not report Saved on failure and blocks stale/expired sessions", async () => {
     vi.useFakeTimers(); api.request.mockRejectedValue(new ApiError(409, "Reload before saving"));
     const draft = publishableDraft();

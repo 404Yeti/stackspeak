@@ -25,7 +25,8 @@ export function StudioEditor({ initial, deliveryEnabled, startPreview = false }:
   const [actionError, setActionError] = useState("");
   const [loadingGuide, setLoadingGuide] = useState(false);
   const [acting, setActing] = useState(false);
-  const autosave = useAutosave(initial.id, initial.lockVersion, draft, guide);
+  const [lineError, setLineError] = useState("");
+  const autosave = useAutosave(initial.id, initial.lockVersion, draft, guide, lineError, !!initial.recoveredReadLines?.length);
   const guideRequest = useRef(0);
   async function chooseTab(next: typeof tab) {
     setTab(next); setActionError("");
@@ -64,6 +65,7 @@ export function StudioEditor({ initial, deliveryEnabled, startPreview = false }:
       <div className="studio-actions"><Button variant="secondary" disabled={acting || autosave.busy || autosave.blocked} onClick={() => void autosave.save()}>Save draft</Button><Button disabled={acting || autosave.busy || autosave.blocked} onClick={() => void act("publish")}>{publication === "published" ? "Publish changes" : "Publish exercise"}</Button></div>
     </div>
     <div className="studio-save-bar"><p role="status" aria-live="polite">{autosave.status}</p><span>Draft edits stay private until you publish.</span></div>
+    {!!initial.recoveredReadLines?.length && <p role="note" className="studio-notice">Invalid line references were removed from vocabulary {initial.recoveredReadLines.join(", ")} for editing. All vocabulary text is preserved. Review the references; corrections are saved with this draft.</p>}
     {autosave.error && <div role="alert" className="studio-error"><p>{autosave.error}</p>{autosave.blocked ? <><p>Keep this tab open to preserve your unsaved work.</p><a className="classroom-text-button" href="/classroom/login" target="_blank" rel="noreferrer">Sign in in a new tab</a>{autosave.canRetrySession && <button className="classroom-text-button" onClick={autosave.resumeSession}>Retry after sign-in</button>}<button className="classroom-text-button" onClick={() => { if (window.confirm("Reload and discard unsaved changes?")) window.location.reload(); }}>Reload saved exercise</button></> : <Button variant="secondary" onClick={() => void autosave.save()}>Retry save</Button>}</div>}
     {actionError && <p role="alert" className="studio-error">{actionError}</p>}
     {notice && <p role="status" className="studio-notice">{notice}</p>}
@@ -76,7 +78,7 @@ export function StudioEditor({ initial, deliveryEnabled, startPreview = false }:
     }}>{String(i + 1).padStart(2, "0")}<span>{name}</span></button>)}</div>
     <div role="tabpanel" id={`studio-panel-${tabs.indexOf(tab)}`} aria-labelledby={`studio-tab-${tabs.indexOf(tab)}`} className="studio-panel"><fieldset disabled={acting || autosave.blocked} className="min-w-0">
       {tab === "Content" && <ContentTab value={draft.content} onChange={(content) => setDraft({ ...draft, content })} />}
-      {tab === "Vocabulary" && <VocabularyTab draft={draft} onChange={(vocabulary) => setDraft({ ...draft, vocabulary })} />}
+      <div hidden={tab !== "Vocabulary"}><VocabularyTab draft={draft} onChange={(vocabulary) => setDraft({ ...draft, vocabulary })} onValidationChange={setLineError} /></div>
       {tab === "Teacher Guide" && (guide ? <GuideTab value={guide} draft={draft} onChange={setGuide} /> : <p className="p-8" role="status">{loadingGuide ? "Loading private guide…" : "Select Teacher Guide again to retry."}</p>)}
       {tab === "Preview" && <div className="studio-preview"><div className="studio-preview-label"><strong>Student preview · unpublished content</strong><span>Your teacher guide stays private. Preview edits won’t change this lesson.</span></div>{preview ? <ClassroomWorkspace key={JSON.stringify(preview)} exercise={preview} /> : <p className="p-8">Complete the invalid fields before previewing this draft.</p>}</div>}
     </fieldset></div>
